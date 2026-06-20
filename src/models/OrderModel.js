@@ -5,33 +5,35 @@ class OrderModel {
     return await DBQuery.all(`SELECT * FROM Orders ORDER BY created_at DESC`);
   }
 
+  static async findById(id) {
+    const query = `SELECT * FROM Orders WHERE id = ?`;
+    return await DBQuery.get(query, [id]);
+  }
+
   static async create(orderData) {
-    // Note: Assuming orderData has customerId, pickupAddress, deliveryAddress, itemDescription based on previous OrderModel
-    // If it's a generic object as per OrderService.js, let's adapt it.
-    // Let's assume orderData is { customerName, deliveryAddress, pickupAddress, itemDescription } or similar based on OrderService.
-    // Previously, OrderModel.create took (customerId, pickupAddress, deliveryAddress, itemDescription).
-    // Let's accept both forms depending on how it's called.
-    
-    let customerId = orderData.customerId || 1; // Fallback to 1 if customerName was passed as per MVP boilerplate
+    let customerId = orderData.customerId || 1;
     let pickupAddress = orderData.pickupAddress || 'Unknown Pickup';
     let deliveryAddress = orderData.deliveryAddress || 'Unknown Delivery';
     let itemDescription = orderData.itemDescription || null;
+    let lat = orderData.lat || null;
+    let lng = orderData.lng || null;
 
     if (arguments.length > 1) {
-      // It was called with (customerId, pickupAddress, deliveryAddress, itemDescription)
       customerId = arguments[0];
       pickupAddress = arguments[1];
       deliveryAddress = arguments[2];
       itemDescription = arguments[3];
+      lat = arguments[4] || null;
+      lng = arguments[5] || null;
     }
     
     const query = `
-      INSERT INTO Orders (customer_id, pickup_address, delivery_address, item_description, status)
-      VALUES (?, ?, ?, ?, 'pending')
-      RETURNING *
+      INSERT INTO Orders (customer_id, pickup_address, delivery_address, item_description, status, lat, lng)
+      VALUES (?, ?, ?, ?, 'pending', ?, ?)
     `;
-    const params = [customerId, pickupAddress, deliveryAddress, itemDescription];
-    return await DBQuery.get(query, params);
+    const params = [customerId, pickupAddress, deliveryAddress, itemDescription, lat, lng];
+    const result = await DBQuery.run(query, params);
+    return await DBQuery.get(`SELECT * FROM Orders WHERE id = ?`, [result.lastID]);
   }
 
   static async updateStatus(id, status) {
@@ -39,9 +41,10 @@ class OrderModel {
       UPDATE Orders 
       SET status = ? 
       WHERE id = ?
-      RETURNING *
     `;
-    return await DBQuery.get(query, [status, id]);
+    const result = await DBQuery.run(query, [status, id]);
+    if (result.changes === 0) return null;
+    return await DBQuery.get(`SELECT * FROM Orders WHERE id = ?`, [id]);
   }
 
   static async findByCustomerId(customerId) {
@@ -59,24 +62,40 @@ class OrderModel {
     return await DBQuery.all(query);
   }
 
+  // Bug 1 Fix: Atomic UPDATE to prevent race condition — single SQL statement
   static async acceptOrder(id, driverId) {
     const query = `
       UPDATE Orders 
       SET status = 'accepted', driver_id = ? 
       WHERE id = ? AND status = 'pending' AND driver_id IS NULL
-      RETURNING *
     `;
-    return await DBQuery.get(query, [driverId, id]);
+    const result = await DBQuery.run(query, [driverId, id]);
+    if (result.changes === 0) return null;
+    return await DBQuery.get(`SELECT * FROM Orders WHERE id = ?`, [id]);
   }
 
+  // Bug 2 Fix: Atomic UPDATE ensures only the assigned driver can complete
   static async completeOrder(id, driverId) {
     const query = `
       UPDATE Orders 
       SET status = 'completed' 
       WHERE id = ? AND driver_id = ? AND status = 'accepted'
-      RETURNING *
     `;
-    return await DBQuery.get(query, [id, driverId]);
+    const result = await DBQuery.run(query, [id, driverId]);
+    if (result.changes === 0) return null;
+    return await DBQuery.get(`SELECT * FROM Orders WHERE id = ?`, [id]);
+  }
+
+  // Feature 1: Cancel order — atomic UPDATE with customer_id + status check
+  static async cancelOrder(id, customerId) {
+    const query = `
+      UPDATE Orders 
+      SET status = 'cancelled' 
+      WHERE id = ? AND customer_id = ? AND status = 'pending'
+    `;
+    const result = await DBQuery.run(query, [id, customerId]);
+    if (result.changes === 0) return null;
+    return await DBQuery.get(`SELECT * FROM Orders WHERE id = ?`, [id]);
   }
 
   static async findByDriverId(driverId) {

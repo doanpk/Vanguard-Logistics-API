@@ -32,9 +32,15 @@ function initDB() {
         delivery_address TEXT NOT NULL,
         item_description TEXT,
         status TEXT NOT NULL DEFAULT 'pending',
+        lat REAL,
+        lng REAL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Migration for existing database
+    db.run(`ALTER TABLE Orders ADD COLUMN lat REAL`, (err) => { /* ignore if exists */ });
+    db.run(`ALTER TABLE Orders ADD COLUMN lng REAL`, (err) => { /* ignore if exists */ });
   });
 }
 

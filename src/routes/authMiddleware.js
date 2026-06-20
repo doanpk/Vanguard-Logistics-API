@@ -5,7 +5,7 @@ const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({
-      status: "error",
+      success: false,
       message: "Access denied. No token provided.",
       data: null,
     });
@@ -20,7 +20,7 @@ const verifyToken = (req, res, next) => {
   } catch (error) {
     res
       .status(401)
-      .json({ status: "error", message: "Invalid token.", data: null });
+      .json({ success: false, message: "Invalid token.", data: null });
   }
 };
 
@@ -28,7 +28,7 @@ const requireRole = (roleName) => {
   return (req, res, next) => {
     if (!req.user || req.user.role !== roleName) {
       return res.status(403).json({
-        status: "error",
+        success: false,
         message: "Access denied. Insufficient permissions.",
         data: null,
       });

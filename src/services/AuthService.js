@@ -5,18 +5,26 @@ const UserModel = require("../models/UserModel");
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 
 class AuthService {
+  // Bug 5 Fix: Role validation already present, now with proper err.status
   static async register(username, password, role) {
     if (!username || !password || !role) {
-      throw new Error("Username, password, and role are required.");
+      const err = new Error("Username, password, and role are required.");
+      err.status = 400;
+      throw err;
     }
 
+    // Bug 5: Validate role is strictly 'customer' or 'driver'
     if (!["customer", "driver"].includes(role)) {
-      throw new Error("Role must be 'customer' or 'driver'.");
+      const err = new Error("Role must be 'customer' or 'driver'.");
+      err.status = 400;
+      throw err;
     }
 
     const existingUser = await UserModel.findByUsername(username);
     if (existingUser) {
-      throw new Error("Username already exists.");
+      const err = new Error("Username already exists.");
+      err.status = 409;
+      throw err;
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -27,17 +35,23 @@ class AuthService {
 
   static async login(username, password) {
     if (!username || !password) {
-      throw new Error("Username and password are required.");
+      const err = new Error("Username and password are required.");
+      err.status = 400;
+      throw err;
     }
 
     const user = await UserModel.findByUsername(username);
     if (!user) {
-      throw new Error("Invalid username or password.");
+      const err = new Error("Invalid username or password.");
+      err.status = 401;
+      throw err;
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
-      throw new Error("Invalid username or password.");
+      const err = new Error("Invalid username or password.");
+      err.status = 401;
+      throw err;
     }
 
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {

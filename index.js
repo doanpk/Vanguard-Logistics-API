@@ -6,7 +6,8 @@ const authRoutes = require("./src/routes/AuthRoutes");
 const customerOrderRoutes = require("./src/routes/CustomerOrderRoutes");
 const driverOrderRoutes = require("./src/routes/DriverOrderRoutes");
 const swaggerUi = require("swagger-ui-express");
-const swaggerDocument = require("./src/config/swagger");
+const swaggerSpec = require("./src/config/swagger");
+const errorHandler = require("./src/middleware/errorHandler");
 
 const app = express();
 const initialPort = parseInt(process.env.PORT, 10) || 5000;
@@ -14,8 +15,8 @@ const initialPort = parseInt(process.env.PORT, 10) || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Swagger Documentation
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// Swagger Documentation – served at /api-docs
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 app.use("/api/orders", orderRoutes);
@@ -23,13 +24,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/customer/orders", customerOrderRoutes);
 app.use("/api/driver", driverOrderRoutes);
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res
-    .status(500)
-    .json({ status: "error", message: "Internal Server Error", data: null });
-});
+// Centralized Error Handler (must be registered LAST, after all routes)
+app.use(errorHandler);
 
 const startServer = (port) => {
   const server = app.listen(port, () => {

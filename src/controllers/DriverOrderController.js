@@ -1,78 +1,45 @@
 const DriverOrderService = require("../services/DriverOrderService");
+const { success } = require("../utils/responseHelper");
 
 class DriverOrderController {
-  static async getPendingOrders(req, res) {
+  static async getPendingOrders(req, res, next) {
     try {
       const orders = await DriverOrderService.getPendingOrders();
-      res
-        .status(200)
-        .json({
-          status: "success",
-          message: "Pending orders retrieved",
-          data: orders,
-        });
-    } catch (error) {
-      res
-        .status(500)
-        .json({ status: "error", message: error.message, data: null });
+      return success(res, orders, "Pending orders retrieved");
+    } catch (err) {
+      next(err);
     }
   }
 
-  static async acceptOrder(req, res) {
+  static async acceptOrder(req, res, next) {
     try {
       const driverId = req.user.id;
       const { id } = req.params;
       const order = await DriverOrderService.acceptOrder(id, driverId);
-      res
-        .status(200)
-        .json({
-          status: "success",
-          message: "Order accepted successfully",
-          data: order,
-        });
-    } catch (error) {
-      const statusCode = error.message.includes("not found") ? 404 : 400;
-      res
-        .status(statusCode)
-        .json({ status: "error", message: error.message, data: null });
+      return success(res, order, "Order accepted successfully");
+    } catch (err) {
+      next(err);
     }
   }
 
-  static async completeOrder(req, res) {
+  static async completeOrder(req, res, next) {
     try {
       const driverId = req.user.id;
       const { id } = req.params;
       const order = await DriverOrderService.completeOrder(id, driverId);
-      res
-        .status(200)
-        .json({
-          status: "success",
-          message: "Order completed successfully",
-          data: order,
-        });
-    } catch (error) {
-      const statusCode = error.message.includes("not found") ? 404 : 400;
-      res
-        .status(statusCode)
-        .json({ status: "error", message: error.message, data: null });
+      return success(res, order, "Order completed successfully");
+    } catch (err) {
+      next(err);
     }
   }
 
-  static async getMyOrders(req, res) {
+  static async getMyOrders(req, res, next) {
     try {
       const driverId = req.user.id;
       const orders = await DriverOrderService.getDriverOrders(driverId);
-      res
-        .status(200)
-        .json({
-          status: "success",
-          message: "Driver orders retrieved",
-          data: orders,
-        });
-    } catch (error) {
-      res
-        .status(500)
-        .json({ status: "error", message: error.message, data: null });
+      return success(res, orders, "Driver orders retrieved");
+    } catch (err) {
+      next(err);
     }
   }
 }

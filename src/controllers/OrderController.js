@@ -1,57 +1,33 @@
 const OrderService = require("../services/OrderService");
+const { success } = require("../utils/responseHelper");
 
 class OrderController {
-  static async getOrders(req, res) {
+  static async getOrders(req, res, next) {
     try {
       const orders = await OrderService.getAllOrders();
-      res
-        .status(200)
-        .json({
-          status: "success",
-          message: "Orders retrieved successfully",
-          data: orders,
-        });
-    } catch (error) {
-      res
-        .status(500)
-        .json({ status: "error", message: error.message, data: null });
+      return success(res, orders, "Orders retrieved successfully");
+    } catch (err) {
+      next(err);
     }
   }
 
-  static async createOrder(req, res) {
+  static async createOrder(req, res, next) {
     try {
       const newOrder = await OrderService.createOrder(req.body);
-      res
-        .status(201)
-        .json({
-          status: "success",
-          message: "Order created successfully",
-          data: newOrder,
-        });
-    } catch (error) {
-      res
-        .status(400)
-        .json({ status: "error", message: error.message, data: null });
+      return success(res, newOrder, "Order created successfully", 201);
+    } catch (err) {
+      next(err);
     }
   }
 
-  static async updateOrderStatus(req, res) {
+  static async updateOrderStatus(req, res, next) {
     try {
       const { id } = req.params;
       const { status } = req.body;
       const updatedOrder = await OrderService.updateOrderStatus(id, status);
-      res
-        .status(200)
-        .json({
-          status: "success",
-          message: "Order status updated successfully",
-          data: updatedOrder,
-        });
-    } catch (error) {
-      const statusCode = error.message === "Order not found." ? 404 : 400;
-      res
-        .status(statusCode)
-        .json({ status: "error", message: error.message, data: null });
+      return success(res, updatedOrder, "Order status updated successfully");
+    } catch (err) {
+      next(err);
     }
   }
 }
