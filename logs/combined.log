@@ -1,0 +1,24 @@
+[2026-06-20 19:10:07] ERROR: Invalid username or password. 
+Error: Invalid username or password.
+    at AuthService.login (D:\API\BTL\src\services\AuthService.js:45:19)
+    at async login (D:\API\BTL\src\controllers\AuthController.js:49:24)
+[2026-06-20 19:10:21] ERROR: Invalid username or password. 
+Error: Invalid username or password.
+    at AuthService.login (D:\API\BTL\src\services\AuthService.js:45:19)
+    at async login (D:\API\BTL\src\controllers\AuthController.js:49:24)
+[2026-06-20 19:10:39] ERROR: Invalid username or password. 
+Error: Invalid username or password.
+    at AuthService.login (D:\API\BTL\src\services\AuthService.js:45:19)
+    at async login (D:\API\BTL\src\controllers\AuthController.js:49:24)
+[2026-06-20 19:49:13] ERROR: Invalid username or password. 
+Error: Invalid username or password.
+    at AuthService.login (D:\API\BTL\src\services\AuthService.js:50:19)
+    at async login (D:\API\BTL\src\controllers\AuthController.js:52:24)
+[2026-06-20 19:55:23] ERROR: Invalid username or password. 
+Error: Invalid username or password.
+    at AuthService.login (D:\API\BTL\src\services\AuthService.js:50:19)
+    at async login (D:\API\BTL\src\controllers\AuthController.js:52:24)
+[2026-06-20 19:55:43] ERROR: Invalid username or password. 
+Error: Invalid username or password.
+    at AuthService.login (D:\API\BTL\src\services\AuthService.js:50:19)
+    at async login (D:\API\BTL\src\controllers\AuthController.js:52:24)

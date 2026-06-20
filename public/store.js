@@ -1,0 +1,196 @@
+let previousPendingCount = 0;
+let isStoreOpen = true;
+
+function toggleStoreStatus() {
+  isStoreOpen = !isStoreOpen;
+  const statusEl = document.getElementById('store-status-text');
+  if (isStoreOpen) {
+    statusEl.innerHTML = '<i class="fa-solid fa-circle text-[8px] mr-1"></i>Đang mở cửa ▾';
+    statusEl.className = 'text-xs text-green-500 font-semibold cursor-pointer';
+  } else {
+    statusEl.innerHTML = '<i class="fa-solid fa-circle text-[8px] mr-1"></i>Đã đóng cửa ▾';
+    statusEl.className = 'text-xs text-gray-500 font-semibold cursor-pointer';
+  }
+  // Persist to DB
+  apiCall('/store/status', 'PUT', { is_open: isStoreOpen }, 'store').catch(e => console.error(e));
+}
+
+function switchTab(tabId, element) {
+  document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+  document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+  
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.remove('bg-orange-50', 'text-orange-600');
+    el.classList.add('text-gray-600');
+  });
+  element.classList.add('bg-orange-50', 'text-orange-600');
+  element.classList.remove('text-gray-600');
+}
+
+document.getElementById('current-date').textContent = new Date().toLocaleDateString('vi-VN');
+
+const originalRefresh = window.refreshData;
+window.refreshData = function() {
+  if (tokens.store) {
+    document.getElementById('auth-section').style.display = 'none';
+    document.getElementById('main-content').style.display = 'flex';
+    
+    loadProfile('store');
+    loadStoreMenu();
+    loadStoreOrders();
+  }
+};
+
+async function loadStoreMenu() {
+  try {
+    const res = await apiCall('/store/menu', 'GET', null, 'store');
+    const tbody = document.getElementById('menu-table-body');
+    if(res.data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">Chưa có món ăn nào.</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = res.data.map(m => `
+      <tr class="hover:bg-gray-50" id="menu-row-${m.name.replace(/\s+/g, '')}">
+        <td class="p-4 font-bold text-gray-800">${m.name}</td>
+        <td class="p-4 text-sm text-gray-600 max-w-xs truncate">${m.description || ''}</td>
+        <td class="p-4 text-emerald-600 font-semibold">${m.price.toLocaleString('vi-VN')}đ</td>
+        <td class="p-4 text-right">
+          <button onclick="editMenuMock('${m.name}')" class="text-blue-500 hover:text-blue-700 mr-3"><i class="fa-solid fa-pen"></i></button>
+          <button onclick="deleteMenuMock('${m.name}')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {}
+}
+
+async function addMenuItem() {
+  const name = document.getElementById('item-name').value;
+  const price = document.getElementById('item-price').value;
+  const desc = document.getElementById('item-desc').value;
+  if (!name || !price) return alert('Nhập đủ tên và giá!');
+
+  try {
+    await apiCall('/store/menu', 'POST', { name, description: desc, price: parseFloat(price) }, 'store');
+    document.getElementById('modal-add-item').classList.add('hidden');
+    document.getElementById('item-name').value = '';
+    document.getElementById('item-price').value = '';
+    document.getElementById('item-desc').value = '';
+    loadStoreMenu();
+  } catch (err) { alert(err.message); }
+}
+
+async function loadStoreOrders() {
+  try {
+    const res = await apiCall('/store/orders', 'GET', null, 'store');
+    renderKanban(res.data);
+    updateDashboardStats(res.data);
+  } catch(e) {}
+}
+
+function updateDashboardStats(orders) {
+  const completed = orders.filter(o => o.status === 'completed');
+  const cancelled = orders.filter(o => o.status === 'cancelled');
+  
+  let revenue = 0;
+  completed.forEach(o => revenue += (o.total_price || 0));
+  
+  document.querySelector('.profile-balance').textContent = revenue.toLocaleString('vi-VN');
+  document.getElementById('stat-completed').textContent = completed.length;
+  document.getElementById('stat-cancelled').textContent = cancelled.length;
+}
+
+function renderKanban(orders) {
+  const newOrders = orders.filter(o => o.status === 'pending');
+  const prepOrders = orders.filter(o => o.status === 'finding_driver');
+  const waitOrders = orders.filter(o => o.status === 'preparing' || o.status === 'delivering');
+
+  document.getElementById('col-new-count').textContent = newOrders.length;
+  document.getElementById('col-prep-count').textContent = prepOrders.length;
+  document.getElementById('col-wait-count').textContent = waitOrders.length;
+
+  // Audio Alert for new orders
+  if (newOrders.length > previousPendingCount) {
+    document.getElementById('audio-ding').play().catch(e => console.log('Audio autoplay blocked'));
+    document.getElementById('new-badge').classList.remove('hidden');
+  } else if (newOrders.length === 0) {
+    document.getElementById('new-badge').classList.add('hidden');
+  }
+  previousPendingCount = newOrders.length;
+
+  // Render Col New
+  document.getElementById('col-new').innerHTML = newOrders.map(o => `
+    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500 cursor-grab hover:shadow-md transition">
+      <div class="flex justify-between items-start mb-2">
+        <h4 class="font-bold">Đơn #${o.id}</h4>
+        <span class="text-xs text-gray-500">${new Date(o.created_at).toLocaleTimeString('vi-VN')}</span>
+      </div>
+      <p class="text-sm font-semibold text-gray-700 mb-1">${o.item_description}</p>
+      <p class="text-xs text-gray-500 truncate mb-3">Tới: ${o.delivery_address}</p>
+      <div class="flex space-x-2">
+        <button onclick="storeRejectOrder(${o.id})" class="w-1/3 bg-gray-200 text-gray-700 font-bold py-2 rounded-lg text-sm hover:bg-gray-300">Từ chối</button>
+        <button onclick="storeAcceptOrder(${o.id})" class="w-2/3 bg-red-100 text-red-600 font-bold py-2 rounded-lg text-sm hover:bg-red-200">Nhận Đơn</button>
+      </div>
+    </div>
+  `).join('') || '<p class="text-gray-400 text-sm text-center py-4">Trống</p>';
+
+  // Render Col Prep
+  document.getElementById('col-prep').innerHTML = prepOrders.map(o => `
+    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-orange-500 opacity-80 relative">
+      <div class="absolute inset-0 bg-white/50 z-10 rounded-xl flex flex-col items-center justify-center">
+        <i class="fa-solid fa-spinner fa-spin text-orange-500 text-2xl mb-2"></i>
+        <span class="text-xs font-bold text-orange-600">Đang quét tài xế...</span>
+      </div>
+      <div class="flex justify-between items-start mb-2">
+        <h4 class="font-bold">Đơn #${o.id}</h4>
+      </div>
+      <p class="text-sm font-semibold text-gray-700 mb-1">${o.item_description}</p>
+    </div>
+  `).join('') || '<p class="text-gray-400 text-sm text-center py-4">Trống</p>';
+
+  // Render Col Wait
+  document.getElementById('col-wait').innerHTML = waitOrders.map(o => `
+    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
+      <div class="flex justify-between items-start mb-2">
+        <h4 class="font-bold">Đơn #${o.id}</h4>
+        <span class="bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded font-bold">${o.status === 'preparing' ? 'Chờ Tx đến' : 'Tx Đang Giao'}</span>
+      </div>
+      <p class="text-sm font-semibold text-gray-700 mb-2">${o.item_description}</p>
+      <div class="flex items-center text-xs text-gray-600">
+        <div class="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-2"><i class="fa-solid fa-motorcycle text-xs"></i></div>
+        <span>Tài xế: <b>#${o.driver_id}</b></span>
+      </div>
+    </div>
+  `).join('') || '<p class="text-gray-400 text-sm text-center py-4">Trống</p>';
+}
+
+async function storeAcceptOrder(id) {
+  try {
+    await apiCall(`/store/orders/${id}/accept`, 'PUT', null, 'store');
+    loadStoreOrders();
+  } catch (err) { alert(err.message); }
+}
+
+async function storeRejectOrder(id) {
+  if(confirm(`Bạn có chắc chắn muốn TỪ CHỐI đơn hàng #${id}? Tiền sẽ được hoàn cho khách.`)) {
+    try {
+      await apiCall(`/store/orders/${id}/reject`, 'PUT', null, 'store');
+      alert('Từ chối đơn thành công! Tiền đã hoàn cho khách.');
+      loadStoreOrders();
+    } catch(err) { alert(err.message); }
+  }
+}
+
+function editMenuMock(name) {
+  alert(`Cập nhật món: ${name} (Cần Backend API)`);
+}
+
+function deleteMenuMock(name) {
+  if(confirm(`Xóa món ${name} khỏi thực đơn?`)) {
+    const row = document.getElementById(`menu-row-${name.replace(/\s+/g, '')}`);
+    if(row) row.remove();
+    alert("Đã xóa (Mock UI, cần Backend API).");
+  }
+}
+
+setInterval(refreshData, 3000);

@@ -6,16 +6,22 @@ const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 
 class AuthService {
   // Bug 5 Fix: Role validation already present, now with proper err.status
-  static async register(username, password, role) {
+  static async register(username, password, role, address = null, phone_number = null, vehicle_info = null, full_name = null) {
     if (!username || !password || !role) {
       const err = new Error("Username, password, and role are required.");
       err.status = 400;
       throw err;
     }
 
-    // Bug 5: Validate role is strictly 'customer' or 'driver'
-    if (!["customer", "driver"].includes(role)) {
-      const err = new Error("Role must be 'customer' or 'driver'.");
+    // Validate role is strictly 'customer', 'driver', 'manager', or 'store'
+    if (!["customer", "driver", "manager", "store"].includes(role)) {
+      const err = new Error("Role must be 'customer', 'driver', 'manager', or 'store'.");
+      err.status = 400;
+      throw err;
+    }
+
+    if (role === "store" && !address) {
+      const err = new Error("Address is required for store registration.");
       err.status = 400;
       throw err;
     }
@@ -27,10 +33,9 @@ class AuthService {
       throw err;
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
-
-    return await UserModel.create(username, passwordHash, role);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await UserModel.create(username, hashedPassword, role, address, phone_number, vehicle_info, full_name);
+    return newUser;
   }
 
   static async login(username, password) {

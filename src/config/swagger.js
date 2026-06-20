@@ -66,7 +66,7 @@ const options = {
             },
             role: {
               type: "string",
-              enum: ["customer", "driver"],
+              enum: ["customer", "driver", "manager"],
               example: "customer",
             },
           },

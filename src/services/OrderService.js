@@ -6,6 +6,20 @@ class OrderService {
     return await OrderModel.getAll();
   }
 
+  static async getDashboard() {
+    const orders = await OrderModel.getAll();
+    const total = orders.length;
+    const pending = orders.filter(o => o.status === 'pending').length;
+    const accepted = orders.filter(o => o.status === 'accepted').length;
+    const completed = orders.filter(o => o.status === 'completed').length;
+    const cancelled = orders.filter(o => o.status === 'cancelled').length;
+    
+    return {
+      total,
+      stats: { pending, accepted, completed, cancelled }
+    };
+  }
+
   static async createOrder(orderData) {
     if (!orderData.customerName || !orderData.deliveryAddress) {
       const err = new Error("Customer Name and Delivery Address are required.");

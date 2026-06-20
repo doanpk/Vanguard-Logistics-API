@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GrabDriver - Partner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+  <style>
+    ::-webkit-scrollbar { display: none; }
+    body { -ms-overflow-style: none; scrollbar-width: none; background-color: #111827; }
+    .mobile-container { max-width: 414px; margin: 0 auto; background: #1f2937; min-height: 100vh; position: relative; padding-bottom: 70px; box-shadow: 0 0 15px rgba(0,0,0,0.5); color: white; }
+    .bottom-nav { position: fixed; bottom: 0; max-width: 414px; width: 100%; left: 50%; transform: translateX(-50%); background: #111827; border-top: 1px solid #374151; display: flex; justify-content: space-around; padding: 10px 0; z-index: 50; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; color: #6b7280; font-size: 0.75rem; cursor: pointer; }
+    .nav-item.active { color: #10b981; }
+    .nav-item i { font-size: 1.25rem; margin-bottom: 4px; }
+    
+    .radar-pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+  </style>
+</head>
+<body class="bg-gray-900">
+  <div class="mobile-container">
+    
+    <!-- Auth Section -->
+    <div id="auth-section" class="p-6 h-screen flex flex-col justify-center bg-gray-900">
+      <div class="text-center mb-8">
+        <div class="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-motorcycle text-4xl text-white"></i></div>
+        <h1 class="text-2xl font-bold text-white">GrabDriver Clone</h1>
+        <p class="text-gray-400 text-sm">Cộng tác viên giao hàng</p>
+      </div>
+      <div class="space-y-4">
+        <input type="text" id="drv-user" placeholder="Tài khoản (VD: tx1)" value="tx1" class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-white">
+        <input type="password" id="drv-pass" placeholder="Mật khẩu" value="123456" class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-white">
+        <button onclick="login('driver')" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-emerald-600 transition">Đăng Nhập</button>
+        <button onclick="register('driver')" class="w-full bg-gray-700 text-gray-300 font-bold py-3 rounded-lg hover:bg-gray-600 transition border border-gray-600">Đăng Ký Tài Xế Mới</button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" style="display: none;">
+      
+      <!-- TAB 1: RADAR -->
+      <div id="tab-radar" class="tab-pane block h-screen relative">
+        <div class="absolute top-0 left-0 w-full p-4 z-10 flex justify-between items-center bg-gradient-to-b from-gray-900 to-transparent">
+          <div id="toggle-status-btn" onclick="toggleOnlineStatus()" class="bg-gray-800 rounded-full px-4 py-2 flex items-center cursor-pointer hover:bg-gray-700 transition">
+            <div id="status-indicator" class="w-3 h-3 bg-emerald-500 rounded-full mr-2 radar-pulse"></div>
+            <span id="status-text" class="font-bold text-sm">Sẵn sàng nhận cuốc</span>
+          </div>
+          <div onclick="alert('Không có thông báo mới!')" class="bg-gray-800 p-2 rounded-full w-10 h-10 flex items-center justify-center cursor-pointer hover:bg-gray-700"><i class="fa-solid fa-bell"></i></div>
+        </div>
+
+        <!-- Fake Map Background for Radar -->
+        <div class="absolute inset-0 bg-gray-800 flex items-center justify-center overflow-hidden z-0">
+          <div class="w-full h-full opacity-30" style="background-image: radial-gradient(#374151 1px, transparent 1px); background-size: 20px 20px;"></div>
+          <!-- Radar Circle -->
+          <div class="absolute w-64 h-64 border border-emerald-500/30 rounded-full flex items-center justify-center">
+            <div class="w-48 h-48 border border-emerald-500/20 rounded-full flex items-center justify-center">
+              <div class="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/50 radar-pulse text-white z-10"><i class="fa-solid fa-location-arrow"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW ORDER POPUP (Modal) -->
+        <div id="incoming-order-popup" class="hidden absolute inset-x-0 bottom-20 mx-4 bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl z-20 p-4">
+          <div class="flex justify-between items-start border-b border-gray-700 pb-3 mb-3">
+            <div>
+              <span class="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2 py-1 rounded">Giao đồ ăn</span>
+              <h3 class="font-bold mt-1 text-lg">Đơn hàng mới!</h3>
+            </div>
+            <div class="text-right">
+              <span class="text-2xl font-bold text-emerald-400" id="incoming-fee">15.000đ</span>
+              <p class="text-xs text-gray-400">Trả qua ví</p>
+            </div>
+          </div>
+          <div class="space-y-3 mb-4 text-sm">
+            <div class="flex items-start">
+              <div class="w-6 flex flex-col items-center mr-2"><div class="w-3 h-3 rounded-full border-2 border-emerald-500"></div><div class="w-0.5 h-6 bg-gray-700 my-1"></div></div>
+              <div class="flex-1"><p class="text-gray-400 text-xs">Điểm lấy (Cách 1.2km)</p><p class="font-semibold truncate w-64" id="incoming-pickup">450 Lê Văn Việt</p></div>
+            </div>
+            <div class="flex items-start">
+              <div class="w-6 flex flex-col items-center mr-2"><div class="w-3 h-3 rounded-full border-2 border-red-500 bg-red-500"></div></div>
+              <div class="flex-1"><p class="text-gray-400 text-xs">Điểm giao</p><p class="font-semibold truncate w-64" id="incoming-delivery">KTX UTC2</p></div>
+            </div>
+          </div>
+          <button id="btn-accept" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl hover:bg-emerald-600 text-lg shadow-lg shadow-emerald-500/30">Chạm để nhận</button>
+        </div>
+
+        <!-- ACTIVE ORDER TRACKING -->
+        <div id="active-order-view" class="hidden absolute inset-0 z-30 bg-gray-900 flex flex-col">
+          <div id="driver-map" class="h-1/2 w-full bg-gray-800"></div>
+          <div class="h-1/2 w-full bg-gray-800 rounded-t-3xl -mt-6 p-5 relative shadow-2xl border-t border-gray-700 flex flex-col">
+            <div class="w-12 h-1.5 bg-gray-600 rounded-full mx-auto mb-4"></div>
+            <div class="flex justify-between items-center mb-4">
+              <div><h3 class="font-bold text-xl" id="active-status-text">Đang đến quán</h3><p class="text-sm text-gray-400">Đơn hàng #<span id="active-id"></span></p></div>
+              <div onclick="alert('Tính năng Chat với khách đang phát triển!')" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-xl text-blue-400 cursor-pointer hover:bg-gray-600"><i class="fa-solid fa-comment-dots"></i></div>
+            </div>
+            <div class="bg-gray-700 p-3 rounded-xl mb-4 flex-1">
+              <p class="text-xs text-gray-400 mb-1">Chi tiết món</p>
+              <p class="font-semibold text-sm" id="active-items">1x Cơm Tấm</p>
+            </div>
+            <div id="active-action-btn-container"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: INCOME -->
+      <div id="tab-income" class="tab-pane hidden p-4 pb-24">
+        <h2 class="text-xl font-bold mb-4">Thu nhập</h2>
+        <div class="bg-emerald-500 rounded-2xl p-5 mb-6 shadow-lg shadow-emerald-500/20">
+          <p class="text-emerald-100 text-sm">Hôm nay</p>
+          <div class="text-3xl font-bold mb-2">350.000đ</div>
+          <div class="flex space-x-4 mt-4 border-t border-emerald-400/30 pt-3">
+            <div><p class="text-xs text-emerald-100">Số cuốc</p><p class="font-bold">12</p></div>
+            <div><p class="text-xs text-emerald-100">Thời gian onl</p><p class="font-bold">5h30m</p></div>
+          </div>
+        </div>
+        <h3 class="font-bold mb-3 text-gray-300">Biểu đồ tuần</h3>
+        <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
+          <canvas id="incomeChart" height="150"></canvas>
+        </div>
+      </div>
+
+      <!-- TAB 3: HISTORY -->
+      <div id="tab-history" class="tab-pane hidden p-4 pb-24">
+        <h2 class="text-xl font-bold mb-4">Lịch sử giao hàng</h2>
+        <div id="history-list" class="space-y-3">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- TAB 4: PROFILE -->
+      <div id="tab-profile" class="tab-pane hidden p-4 pb-24">
+        <div class="flex items-center space-x-4 mb-8 mt-4">
+          <div class="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center text-3xl"><i class="fa-solid fa-user-astronaut"></i></div>
+          <div>
+            <h2 class="text-xl font-bold profile-name">Tài xế</h2>
+            <p class="text-sm text-gray-400 profile-vehicle">59-X1 12345</p>
+            <div class="text-yellow-400 text-sm mt-1"><i class="fa-solid fa-star"></i> 5.0 Rating</div>
+          </div>
+        </div>
+        <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 mb-4 flex justify-between items-center">
+          <div><p class="text-gray-400 text-xs">Ví Tín Dụng</p><p class="text-xl font-bold text-emerald-400"><span class="profile-balance">0</span>đ</p></div>
+          <button onclick="requestWithdrawal()" class="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-bold border border-gray-600 hover:bg-gray-600">Rút tiền</button>
+        </div>
+        <div class="space-y-2">
+          <div onclick="alert('Hồ sơ đã được duyệt 100%')" class="bg-gray-800 p-4 rounded-xl border border-gray-700 flex items-center justify-between cursor-pointer hover:bg-gray-700"><span class="font-semibold"><i class="fa-solid fa-file-contract text-gray-400 mr-2 w-5"></i> Hồ sơ đối tác</span><i class="fa-solid fa-chevron-right text-gray-500"></i></div>
+          <div onclick="alert('Tổng đài: 1900 1234')" class="bg-gray-800 p-4 rounded-xl border border-gray-700 flex items-center justify-between cursor-pointer hover:bg-gray-700"><span class="font-semibold"><i class="fa-solid fa-headset text-blue-400 mr-2 w-5"></i> Hỗ trợ</span><i class="fa-solid fa-chevron-right text-gray-500"></i></div>
+          <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 flex items-center justify-between cursor-pointer text-red-400 hover:bg-gray-700" onclick="location.reload()"><span class="font-semibold"><i class="fa-solid fa-power-off mr-2 w-5"></i> Đăng xuất</span></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div id="bottom-nav" class="bottom-nav" style="display: none;">
+      <div class="nav-item active" onclick="switchTab('radar', this)"><i class="fa-solid fa-satellite-dish"></i><span>Radar</span></div>
+      <div class="nav-item" onclick="switchTab('income', this)"><i class="fa-solid fa-chart-simple"></i><span>Thu nhập</span></div>
+      <div class="nav-item" onclick="switchTab('history', this)"><i class="fa-solid fa-clock-rotate-left"></i><span>Lịch sử</span></div>
+      <div class="nav-item" onclick="switchTab('profile', this)"><i class="fa-regular fa-id-card"></i><span>Tài khoản</span></div>
+    </div>
+
+  </div>
+
+  <script>const currentRole = 'driver';</script>
+  <script src="common.js"></script>
+  <script src="driver.js"></script>
+</body>
+</html>

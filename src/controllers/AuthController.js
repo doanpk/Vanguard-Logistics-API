@@ -5,25 +5,28 @@ class AuthController {
   // Feature 2: Input validation for register
   static async register(req, res, next) {
     try {
-      const { username, password, role } = req.body;
+      const { username, password, role, address, phone_number, vehicle_info, full_name } = req.body;
 
-      // Feature 2: Detailed input validation
       const errors = [];
-      if (!username || username.trim().length < 3) {
+      if (!username || username.length < 3) {
         errors.push("Username must be at least 3 characters.");
       }
       if (!password || password.length < 6) {
         errors.push("Password must be at least 6 characters.");
       }
-      if (!role || !["customer", "driver"].includes(role)) {
-        errors.push("Role must be 'customer' or 'driver'.");
+      if (!role || !["customer", "driver", "manager", "store"].includes(role)) {
+        errors.push("Role must be 'customer', 'driver', 'manager', or 'store'.");
       }
+      if (role === "store" && (!address || address.length < 5)) {
+        errors.push("Address is required for stores and must be valid.");
+      }
+
       if (errors.length > 0) {
         return error(res, errors.join(" "), 400);
       }
 
-      const newUser = await AuthService.register(username.trim(), password, role);
-      return success(res, newUser, "User registered successfully", 201);
+      const newUser = await AuthService.register(username, password, role, address, phone_number, vehicle_info, full_name);
+      return success(res, { user: newUser }, "User registered successfully", 201);
     } catch (err) {
       next(err);
     }

@@ -22,6 +22,17 @@ class DriverOrderController {
     }
   }
 
+  static async pickupOrder(req, res, next) {
+    try {
+      const driverId = req.user.id;
+      const { id } = req.params;
+      const order = await DriverOrderService.pickupOrder(id, driverId);
+      return success(res, order, "Order picked up successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async completeOrder(req, res, next) {
     try {
       const driverId = req.user.id;

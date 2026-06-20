@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GrabFood - Customer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+  <style>
+    /* Hide scrollbar for clean mobile UI */
+    ::-webkit-scrollbar { display: none; }
+    body { -ms-overflow-style: none; scrollbar-width: none; background-color: #f3f4f6; }
+    .mobile-container { max-width: 414px; margin: 0 auto; background: white; min-height: 100vh; position: relative; padding-bottom: 70px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+    .bottom-nav { position: fixed; bottom: 0; max-width: 414px; width: 100%; left: 50%; transform: translateX(-50%); background: white; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 10px 0; z-index: 50; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; color: #9ca3af; font-size: 0.75rem; cursor: pointer; }
+    .nav-item.active { color: #10b981; }
+    .nav-item i { font-size: 1.25rem; margin-bottom: 4px; }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div class="mobile-container">
+    
+    <!-- Auth Section -->
+    <div id="auth-section" class="p-6 h-screen flex flex-col justify-center">
+      <div class="text-center mb-8">
+        <i class="fa-solid fa-burger text-5xl text-emerald-500 mb-2"></i>
+        <h1 class="text-2xl font-bold text-gray-800">GrabFood Clone</h1>
+        <p class="text-gray-500 text-sm">Đăng nhập để đặt món</p>
+      </div>
+      <div class="space-y-4">
+        <input type="text" id="cust-user" placeholder="Tài khoản (VD: sv1)" value="sv1" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+        <input type="password" id="cust-pass" placeholder="Mật khẩu" value="123456" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+        <input type="text" id="cust-name" placeholder="Họ tên (Khi đăng ký mới)" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+        <input type="text" id="cust-phone" placeholder="Số điện thoại" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+        <button onclick="login('customer')" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-emerald-600 transition">Đăng Nhập</button>
+        <button onclick="register('customer')" class="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-300 transition">Đăng Ký Tài Khoản Mới</button>
+      </div>
+    </div>
+
+    <!-- Main Content (Hidden until logged in) -->
+    <div id="main-content" style="display: none;">
+      
+      <!-- TAB 1: HOME -->
+      <div id="tab-home" class="tab-pane block">
+        <!-- Header -->
+        <div class="bg-emerald-500 p-4 pt-8 rounded-b-3xl shadow-md text-white">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <p class="text-sm opacity-90">Giao đến</p>
+              <h3 id="header-address" class="font-bold text-lg truncate w-48">Đang tải vị trí... ▾</h3>
+            </div>
+            <div class="bg-white/20 p-2 rounded-full"><i class="fa-solid fa-bell"></i></div>
+          </div>
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400"></i>
+            <input type="text" id="search-store" onkeyup="filterStores()" placeholder="Trà sữa, Cơm tấm..." class="w-full py-2 pl-10 pr-4 rounded-full text-gray-800 focus:outline-none shadow-sm">
+          </div>
+        </div>
+
+        <!-- Banner -->
+        <div class="p-4">
+          <div class="bg-gradient-to-r from-orange-400 to-red-500 rounded-xl p-4 text-white shadow-md flex justify-between items-center">
+            <div>
+              <p class="font-bold text-lg">Giảm 50%</p>
+              <p class="text-xs">Dành cho sinh viên UTC2</p>
+            </div>
+            <i class="fa-solid fa-ticket text-4xl opacity-50"></i>
+          </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="px-4 grid grid-cols-4 gap-2 text-center text-xs text-gray-600 mb-4">
+          <div class="flex flex-col items-center"><div class="w-12 h-12 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center text-2xl mb-1"><i class="fa-solid fa-bowl-rice"></i></div>Cơm</div>
+          <div class="flex flex-col items-center"><div class="w-12 h-12 bg-amber-100 text-amber-500 rounded-2xl flex items-center justify-center text-2xl mb-1"><i class="fa-solid fa-burger"></i></div>FastFood</div>
+          <div class="flex flex-col items-center"><div class="w-12 h-12 bg-pink-100 text-pink-500 rounded-2xl flex items-center justify-center text-2xl mb-1"><i class="fa-solid fa-mug-hot"></i></div>Trà Sữa</div>
+          <div class="flex flex-col items-center"><div class="w-12 h-12 bg-blue-100 text-blue-500 rounded-2xl flex items-center justify-center text-2xl mb-1"><i class="fa-solid fa-ellipsis"></i></div>Thêm</div>
+        </div>
+
+        <!-- Store List -->
+        <div class="px-4">
+          <h2 class="font-bold text-lg mb-3">Quán ngon quanh bạn</h2>
+          <div id="store-list-container" class="space-y-4">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- STORE MENU VIEW (Inside Home Tab) -->
+      <div id="store-menu-view" class="hidden bg-white min-h-screen z-20 absolute top-0 left-0 w-full pb-24">
+        <div class="relative h-48 bg-gray-300">
+          <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=80" class="w-full h-full object-cover">
+          <button onclick="closeStoreMenu()" class="absolute top-4 left-4 bg-white/80 p-2 rounded-full w-10 h-10 flex items-center justify-center shadow"><i class="fa-solid fa-chevron-left"></i></button>
+        </div>
+        <div class="p-4 -mt-6 bg-white rounded-t-3xl relative">
+          <h2 id="menu-store-name" class="text-2xl font-bold">Tên Quán</h2>
+          <p class="text-gray-500 text-sm mb-4"><i class="fa-solid fa-star text-yellow-400"></i> 4.8 • Đang mở cửa</p>
+          <div id="menu-list-container" class="space-y-4"></div>
+        </div>
+
+        <!-- Cart Floating Button -->
+        <div id="cart-float" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 w-11/12 max-w-sm bg-emerald-500 text-white rounded-full p-4 shadow-xl flex justify-between items-center cursor-pointer hidden" onclick="openCart()">
+          <div class="flex items-center">
+            <div class="bg-white text-emerald-500 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3" id="cart-badge">1</div>
+            <div class="font-semibold" id="cart-total-float">50.000đ</div>
+          </div>
+          <div class="font-bold">Xem giỏ hàng <i class="fa-solid fa-chevron-right text-sm ml-1"></i></div>
+        </div>
+      </div>
+
+      <!-- CART/CHECKOUT MODAL -->
+      <div id="checkout-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+        <div class="bg-white w-full max-w-md h-[85vh] rounded-t-3xl flex flex-col">
+          <div class="p-4 border-b flex justify-between items-center">
+            <h3 class="font-bold text-lg">Giỏ hàng của bạn</h3>
+            <button onclick="closeCart()"><i class="fa-solid fa-xmark text-xl text-gray-500"></i></button>
+          </div>
+          <div class="p-4 flex-1 overflow-y-auto">
+            <ul id="cart-items-list" class="space-y-3 mb-6"></ul>
+            <div class="bg-gray-50 p-4 rounded-xl border">
+              <h4 class="font-semibold text-sm mb-2 text-gray-600">Giao đến:</h4>
+              <div class="flex items-center space-x-2">
+                <input type="text" id="delivery-address" placeholder="Nhập địa chỉ nhận hàng" class="w-full p-2 border rounded outline-none text-sm focus:border-emerald-500">
+                <button onclick="getLocation()" class="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200" title="Lấy tọa độ GPS"><i class="fa-solid fa-location-crosshairs"></i></button>
+              </div>
+            </div>
+            <div class="mt-4 space-y-2 text-sm text-gray-600">
+              <div class="flex justify-between"><span>Tạm tính</span><span id="cart-subtotal">0đ</span></div>
+              <div class="flex justify-between"><span>Phí giao hàng (Tạm tính)</span><span class="text-orange-500">~15.000đ</span></div>
+              <div class="border-t pt-2 flex justify-between font-bold text-lg text-gray-800"><span>Tổng thanh toán</span><span id="cart-final">0đ</span></div>
+            </div>
+          </div>
+          <div class="p-4 border-t">
+            <button onclick="submitOrder()" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-emerald-600">Đặt Đơn (Bằng Ví)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ORDERS -->
+      <div id="tab-orders" class="tab-pane hidden min-h-screen bg-gray-50 pb-20">
+        <div class="bg-white p-4 pt-8 shadow-sm">
+          <h2 class="text-xl font-bold mb-3">Đơn hàng của tôi</h2>
+          <div class="flex space-x-4 border-b">
+            <button id="btn-tab-active" onclick="switchOrderTab('active')" class="pb-2 border-b-2 border-emerald-500 font-bold text-emerald-600">Đang đến</button>
+            <button id="btn-tab-history" onclick="switchOrderTab('history')" class="pb-2 font-bold text-gray-400">Lịch sử</button>
+          </div>
+        </div>
+        
+        <!-- Live Map Container -->
+        <div id="map-wrapper" class="hidden relative h-64 bg-gray-200">
+          <div id="map" class="w-full h-full"></div>
+          <div class="absolute bottom-4 left-4 right-4 bg-white p-3 rounded-xl shadow-lg z-[400] flex items-center">
+            <div class="w-10 h-10 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center text-xl mr-3"><i class="fa-solid fa-motorcycle"></i></div>
+            <div>
+              <p class="font-bold text-sm">Đang giao hàng</p>
+              <p class="text-xs text-gray-500">Tài xế đang trên đường tới</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4">
+          <div id="active-orders-container" class="space-y-4">
+            <!-- Rendered by JS -->
+          </div>
+          <div id="history-orders-container" class="space-y-4 hidden">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: NOTIFICATIONS -->
+      <div id="tab-notifs" class="tab-pane hidden min-h-screen bg-white pb-20">
+        <div class="p-4 pt-8 border-b">
+          <h2 class="text-xl font-bold">Thông báo</h2>
+        </div>
+        <div class="p-4 space-y-4">
+          <div class="flex space-x-3 items-start opacity-50">
+            <div class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-check"></i></div>
+            <div>
+              <p class="font-semibold text-sm">Đơn hàng đã hoàn thành</p>
+              <p class="text-xs text-gray-500">Cơm Hưng Ký đã được giao thành công. Chúc bạn ngon miệng!</p>
+            </div>
+          </div>
+          <div class="flex space-x-3 items-start">
+            <div class="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-gift"></i></div>
+            <div>
+              <p class="font-semibold text-sm">Tặng bạn 50K 🎁</p>
+              <p class="text-xs text-gray-500">Mã GIAM50K đã được thêm vào ví voucher của bạn.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: PROFILE -->
+      <div id="tab-profile" class="tab-pane hidden min-h-screen bg-gray-50 pb-20">
+        <div class="bg-emerald-500 p-6 pt-10 text-white rounded-b-3xl">
+          <div class="flex items-center space-x-4 mb-6">
+            <img src="https://ui-avatars.com/api/?name=Customer&background=random" id="profile-avatar" class="w-16 h-16 rounded-full border-2 border-white">
+            <div>
+              <h2 class="text-xl font-bold profile-name">Customer</h2>
+              <p class="text-sm opacity-80 profile-phone">090xxxxxxx</p>
+            </div>
+          </div>
+          <div class="bg-white text-gray-800 p-4 rounded-xl shadow-lg flex justify-between items-center">
+            <div>
+              <p class="text-xs text-gray-500 font-semibold mb-1">Số dư Ví Moca</p>
+              <p class="text-xl font-bold text-emerald-600"><span class="profile-balance">0</span>đ</p>
+            </div>
+            <button onclick="depositWallet('customer', 500000)" class="bg-emerald-100 text-emerald-600 px-4 py-2 rounded-lg font-bold text-sm">Nạp 500k</button>
+          </div>
+        </div>
+        <div class="p-4 mt-2 space-y-2">
+          <div onclick="alert('Bạn chưa có khuyến mãi nào!')" class="bg-white p-4 rounded-xl shadow-sm flex items-center text-gray-700 cursor-pointer hover:bg-gray-50">
+            <i class="fa-solid fa-ticket text-orange-500 w-8 text-center text-lg"></i> <span class="font-semibold">Khuyến mãi của tôi</span> <i class="fa-solid fa-chevron-right ml-auto text-gray-400"></i>
+          </div>
+          <div onclick="switchTab('orders', document.querySelectorAll('.nav-item')[1]); switchOrderTab('history');" class="bg-white p-4 rounded-xl shadow-sm flex items-center text-gray-700 cursor-pointer hover:bg-gray-50">
+            <i class="fa-solid fa-clock-rotate-left text-blue-500 w-8 text-center text-lg"></i> <span class="font-semibold">Lịch sử giao dịch</span> <i class="fa-solid fa-chevron-right ml-auto text-gray-400"></i>
+          </div>
+          <div class="bg-white p-4 rounded-xl shadow-sm flex items-center text-red-500 cursor-pointer hover:bg-gray-50" onclick="location.reload()">
+            <i class="fa-solid fa-right-from-bracket w-8 text-center text-lg"></i> <span class="font-semibold">Đăng xuất</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div id="bottom-nav" class="bottom-nav" style="display: none;">
+      <div class="nav-item active" onclick="switchTab('home', this)"><i class="fa-solid fa-compass"></i><span>Khám phá</span></div>
+      <div class="nav-item" onclick="switchTab('orders', this)"><i class="fa-solid fa-receipt"></i><span>Đơn hàng</span></div>
+      <div class="nav-item" onclick="switchTab('notifs', this)"><i class="fa-solid fa-comment-dots"></i><span>Tin nhắn</span></div>
+      <div class="nav-item" onclick="switchTab('profile', this)"><i class="fa-regular fa-user"></i><span>Tài khoản</span></div>
+    </div>
+
+  </div>
+
+  <script>const currentRole = 'customer';</script>
+  <script src="common.js"></script>
+  <script src="customer.js"></script>
+</body>
+</html>

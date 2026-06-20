@@ -18,9 +18,9 @@ class DriverOrderService {
     }
 
     // Bug 4: Validate state transition using state machine
-    if (!canTransition(order.status, "accepted")) {
+    if (!canTransition(order.status, "preparing")) {
       const err = new Error(
-        `Cannot accept order. Current status '${order.status}' cannot transition to 'accepted'.`
+        `Cannot accept order. Current status '${order.status}' cannot transition to 'preparing'.`
       );
       err.status = 400;
       throw err;
@@ -34,6 +34,37 @@ class DriverOrderService {
       throw err;
     }
     return acceptedOrder;
+  }
+
+  static async pickupOrder(orderId, driverId) {
+    const order = await OrderModel.findById(orderId);
+    if (!order) {
+      const err = new Error("Order not found.");
+      err.status = 404;
+      throw err;
+    }
+
+    if (order.driver_id !== driverId) {
+      const err = new Error("You can only pickup your own orders.");
+      err.status = 403;
+      throw err;
+    }
+
+    if (!canTransition(order.status, "delivering")) {
+      const err = new Error(
+        `Cannot pickup order. Current status '${order.status}' cannot transition to 'delivering'.`
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    const pickupedOrder = await OrderModel.pickupOrder(orderId, driverId);
+    if (!pickupedOrder) {
+      const err = new Error("Order cannot be picked up.");
+      err.status = 400;
+      throw err;
+    }
+    return pickupedOrder;
   }
 
   // Bug 2 Fix: Verify driver owns the order before completing
@@ -68,6 +99,16 @@ class DriverOrderService {
       err.status = 400;
       throw err;
     }
+
+    // WALLET LOGIC: Add money to Store and Driver
+    const UserModel = require("../models/UserModel");
+    if (order.store_id && order.total_price) {
+      await UserModel.updateBalance(order.store_id, order.total_price);
+    }
+    if (order.delivery_fee) {
+      await UserModel.updateBalance(driverId, order.delivery_fee);
+    }
+
     return completedOrder;
   }
 

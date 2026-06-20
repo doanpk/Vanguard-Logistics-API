@@ -105,6 +105,27 @@ router.put("/orders/:id/accept", DriverOrderController.acceptOrder);
 
 /**
  * @openapi
+ * /api/driver/orders/{id}/pickup:
+ *   put:
+ *     summary: Pickup an order from store
+ *     description: Driver picks up the order from the store, changing status to delivering.
+ *     tags:
+ *       - Driver Operations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Order picked up successfully
+ */
+router.put("/orders/:id/pickup", DriverOrderController.pickupOrder);
+/**
+ * @openapi
  * /api/driver/orders/{id}/complete:
  *   put:
  *     summary: Mark an accepted order as completed

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GrabAdmin - Manager Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    .pulse-dot { width: 12px; height: 12px; background-color: #3b82f6; border-radius: 50%; box-shadow: 0 0 0 rgba(59, 130, 246, 0.4); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); } 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); } }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+  
+  <!-- Auth Section -->
+  <div id="auth-section" class="flex h-screen items-center justify-center bg-gray-900">
+    <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-700">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-shield-halved text-3xl text-white"></i></div>
+        <h1 class="text-2xl font-bold text-white">System Admin</h1>
+      </div>
+      <div class="space-y-4">
+        <input type="text" id="mgr-user" placeholder="Admin Username" value="admin1" class="w-full p-3 border border-gray-700 rounded-xl bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-white">
+        <input type="password" id="mgr-pass" placeholder="Password" value="123456" class="w-full p-3 border border-gray-700 rounded-xl bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-white">
+        <button onclick="login('manager')" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-700 transition">Truy cập Hệ thống</button>
+        <button onclick="register('manager')" class="w-full bg-gray-700 text-gray-300 font-bold py-3 rounded-xl hover:bg-gray-600 transition border border-gray-600">Đăng Ký Admin Mới</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main-content" style="display: none;" class="flex h-screen overflow-hidden">
+    
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-900 text-white flex flex-col h-full z-10">
+      <div class="p-6 border-b border-gray-800 flex items-center space-x-3">
+        <div class="w-10 h-10 bg-blue-600/20 text-blue-500 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-user-shield"></i></div>
+        <div>
+          <h2 class="font-bold text-white profile-name">Admin</h2>
+          <p class="text-xs text-blue-400 font-semibold">Superuser</p>
+        </div>
+      </div>
+      <nav class="flex-1 p-4 space-y-2">
+        <div onclick="switchTab('overview', this)" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl bg-blue-600/20 text-blue-400 cursor-pointer transition"><i class="fa-solid fa-chart-line w-5"></i><span class="font-semibold">Overview</span></div>
+        <div onclick="switchTab('map', this)" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white cursor-pointer transition"><i class="fa-solid fa-earth-asia w-5"></i><span class="font-semibold">Live Map</span></div>
+        <div onclick="switchTab('users', this)" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white cursor-pointer transition"><i class="fa-solid fa-users w-5"></i><span class="font-semibold">Users Management</span></div>
+        <div onclick="switchTab('orders', this)" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-white cursor-pointer transition"><i class="fa-solid fa-layer-group w-5"></i><span class="font-semibold">Order Control</span></div>
+      </nav>
+      <div class="p-4 border-t border-gray-800">
+        <button onclick="location.reload()" class="w-full flex items-center justify-center space-x-2 text-gray-500 hover:text-red-500 p-2"><i class="fa-solid fa-power-off"></i><span>System Logout</span></button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 overflow-y-auto bg-gray-100 p-8">
+      
+      <!-- TAB: OVERVIEW -->
+      <div id="tab-overview" class="tab-pane block">
+        <div class="flex justify-between items-center mb-8">
+          <h1 class="text-2xl font-bold text-gray-800">System Overview</h1>
+          <button onclick="exportReport()" class="bg-white border text-gray-600 px-4 py-2 rounded-lg font-bold shadow-sm text-sm hover:bg-gray-50"><i class="fa-solid fa-download mr-2"></i>Export Report</button>
+        </div>
+        <div class="grid grid-cols-4 gap-6 mb-8">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <div class="flex justify-between items-start mb-4">
+              <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+              <span class="text-emerald-500 text-sm font-bold">+12.5%</span>
+            </div>
+            <p class="text-gray-500 text-sm font-semibold mb-1">Tổng Doanh Thu</p>
+            <h3 class="text-2xl font-bold text-gray-800" id="stat-revenue">0đ</h3>
+          </div>
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <div class="flex justify-between items-start mb-4">
+              <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
+              <span class="text-emerald-500 text-sm font-bold"></span>
+            </div>
+            <p class="text-gray-500 text-sm font-semibold mb-1">Active Customers</p>
+            <h3 class="text-2xl font-bold text-gray-800" id="stat-users">0</h3>
+          </div>
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <div class="flex justify-between items-start mb-4">
+              <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-motorcycle"></i></div>
+              <span class="text-emerald-500 text-sm font-bold"></span>
+            </div>
+            <p class="text-gray-500 text-sm font-semibold mb-1">Active Drivers</p>
+            <h3 class="text-2xl font-bold text-gray-800" id="stat-drivers">0</h3>
+          </div>
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+            <div class="flex justify-between items-start mb-4">
+              <div class="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-chart-pie"></i></div>
+              <span class="text-red-500 text-sm font-bold"></span>
+            </div>
+            <p class="text-gray-500 text-sm font-semibold mb-1">Tỷ lệ hủy đơn</p>
+            <h3 class="text-2xl font-bold text-gray-800" id="stat-cancel">0%</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: LIVE MAP -->
+      <div id="tab-map" class="tab-pane hidden h-full flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+          <h1 class="text-2xl font-bold text-gray-800">Live Traffic</h1>
+          <div class="flex items-center space-x-2 text-sm text-gray-600"><div class="pulse-dot"></div><span>Đơn đang di chuyển</span></div>
+        </div>
+        <div class="flex-1 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
+          <div id="admin-map" class="w-full h-full"></div>
+        </div>
+      </div>
+
+      <!-- TAB: USERS -->
+      <div id="tab-users" class="tab-pane hidden">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6">Users Management</h1>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <table class="w-full text-left">
+            <thead class="bg-gray-50 border-b">
+              <tr>
+                <th class="p-4 font-semibold text-gray-600 text-sm">ID</th>
+                <th class="p-4 font-semibold text-gray-600 text-sm">Username</th>
+                <th class="p-4 font-semibold text-gray-600 text-sm">Role</th>
+                <th class="p-4 font-semibold text-gray-600 text-sm">Status</th>
+                <th class="p-4 font-semibold text-gray-600 text-sm text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-table" class="divide-y text-sm">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: ORDER CONTROL -->
+      <div id="tab-orders" class="tab-pane hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold text-gray-800">Order Control</h1>
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
+            <input type="text" id="search-order" onkeyup="filterOrders()" placeholder="Tìm ID đơn..." class="w-64 py-2 pl-10 pr-4 rounded-lg border outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <table class="w-full text-left">
+            <thead class="bg-gray-50 border-b">
+              <tr>
+                <th class="p-4 font-semibold text-gray-600 text-sm">ID</th>
+                <th class="p-4 font-semibold text-gray-600 text-sm">Tuyến đường</th>
+                <th class="p-4 font-semibold text-gray-600 text-sm">Tổng tiền</th>
+                <th class="p-4 font-semibold text-gray-600 text-sm">Trạng thái</th>
+                <th class="p-4 font-semibold text-gray-600 text-sm text-right">Khẩn cấp</th>
+              </tr>
+            </thead>
+            <tbody id="admin-orders-table" class="divide-y text-sm">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>const currentRole = 'manager';</script>
+  <script src="common.js"></script>
+  <script src="manager.js"></script>
+</body>
+</html>

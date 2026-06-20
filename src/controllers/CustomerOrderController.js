@@ -1,26 +1,34 @@
 const CustomerOrderService = require("../services/CustomerOrderService");
+const StoreOrderService = require("../services/StoreOrderService");
 const { success, error } = require("../utils/responseHelper");
 
 class CustomerOrderController {
-  // Feature 2: Input validation for create order
+  static async getStores(req, res, next) {
+    try {
+      const stores = await StoreOrderService.getAllStores();
+      return success(res, stores, "Stores retrieved successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getStoreMenu(req, res, next) {
+    try {
+      const storeId = req.params.id;
+      const data = await StoreOrderService.getStoreMenuForCustomer(storeId);
+      return success(res, data, "Store menu retrieved successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async createOrder(req, res, next) {
     try {
-      const customerId = req.user.id; // Taken from JWT
+      const customerId = req.user.id;
+      const { storeId, items, deliveryAddress } = req.body;
 
-      // Feature 2: Validate required fields
-      const { pickupAddress, deliveryAddress, itemDescription } = req.body;
-      const errors = [];
-      if (!pickupAddress || pickupAddress.trim().length === 0) {
-        errors.push("Pickup address is required.");
-      }
-      if (!deliveryAddress || deliveryAddress.trim().length === 0) {
-        errors.push("Delivery address is required.");
-      }
-      if (!itemDescription || itemDescription.trim().length === 0) {
-        errors.push("Item description is required.");
-      }
-      if (errors.length > 0) {
-        return error(res, errors.join(" "), 400);
+      if (!storeId || !deliveryAddress || !items || !Array.isArray(items) || items.length === 0) {
+        return error(res, "Store ID, items array, and delivery address are required.", 400);
       }
 
       const newOrder = await CustomerOrderService.createOrder(

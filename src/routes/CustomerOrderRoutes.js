@@ -10,6 +10,42 @@ router.use(requireRole("customer"));
 
 /**
  * @openapi
+ * /api/customer/orders/stores:
+ *   get:
+ *     summary: Get list of stores
+ *     tags:
+ *       - Customer Orders
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Stores retrieved successfully
+ */
+router.get("/stores", CustomerOrderController.getStores);
+
+/**
+ * @openapi
+ * /api/customer/orders/stores/{id}/menu:
+ *   get:
+ *     summary: Get store menu
+ *     tags:
+ *       - Customer Orders
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Menu retrieved successfully
+ */
+router.get("/stores/:id/menu", CustomerOrderController.getStoreMenu);
+
+/**
+ * @openapi
  * /api/customer/orders:
  *   post:
  *     summary: Create a new delivery order

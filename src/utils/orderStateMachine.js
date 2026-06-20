@@ -3,9 +3,11 @@
  * Enforces valid status transitions to prevent illegal state changes.
  */
 
-const VALID_TRANSITIONS = {
-  pending: ["accepted", "cancelled"],
-  accepted: ["completed"],
+const orderStates = {
+  pending: ["finding_driver", "cancelled"],           // Quán nhận -> finding_driver, Khách hủy -> cancelled
+  finding_driver: ["preparing", "cancelled"],          // Tx nhận -> preparing, Khách/Quán hủy -> cancelled
+  preparing: ["delivering", "cancelled"],              // Tx lấy hàng -> delivering, Hủy có phạt -> cancelled
+  delivering: ["completed"],                           // Tx giao xong -> completed (KHÔNG cho hủy)
   completed: [],
   cancelled: [],
 };
@@ -13,11 +15,16 @@ const VALID_TRANSITIONS = {
 /**
  * Check if a status transition is allowed.
  * @param {string} currentStatus - The current status of the order.
- * @param {string} newStatus - The desired new status.
+ * @param {string} nextStatus - The desired new status.
  * @returns {boolean} True if transition is valid.
  */
-function canTransition(currentStatus, newStatus) {
-  return VALID_TRANSITIONS[currentStatus]?.includes(newStatus) || false;
+function canTransition(currentStatus, nextStatus) {
+  const allowedNextStates = orderStates[currentStatus];
+  if (!allowedNextStates) return false;
+  return allowedNextStates.includes(nextStatus);
 }
 
-module.exports = { canTransition, VALID_TRANSITIONS };
+module.exports = {
+  orderStates,
+  canTransition,
+};

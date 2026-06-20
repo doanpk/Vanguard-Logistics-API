@@ -11,6 +11,15 @@ class OrderController {
     }
   }
 
+  static async getDashboard(req, res, next) {
+    try {
+      const dashboard = await OrderService.getDashboard();
+      return success(res, dashboard, "Dashboard stats retrieved successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async createOrder(req, res, next) {
     try {
       const newOrder = await OrderService.createOrder(req.body);
