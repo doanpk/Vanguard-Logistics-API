@@ -88,6 +88,17 @@ class CustomerOrderService {
     // Deduct from customer
     await UserModel.updateBalance(customerId, -totalCost);
 
+    // Update customer's default address and coordinates
+    try {
+      await UserModel.updateField(customerId, 'address', deliveryAddress);
+      if (lat !== null && lng !== null) {
+        await UserModel.updateField(customerId, 'lat', lat);
+        await UserModel.updateField(customerId, 'lng', lng);
+      }
+    } catch (e) {
+      logger.error(`Failed to update customer default address: ${e.message}`);
+    }
+
     return await OrderModel.create(
       customerId,
       storeId,

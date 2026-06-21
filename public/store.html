@@ -162,6 +162,26 @@
   <!-- Audio for notification -->
   <audio id="audio-ding" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
+    <!-- Chat Modal -->
+    <div id="chat-modal" class="hidden fixed inset-0 z-[500] bg-gray-100 flex flex-col">
+      <div class="bg-white shadow-sm px-4 py-3 flex items-center justify-between border-b">
+        <div class="flex items-center">
+          <button onclick="closeChat()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 mr-3"><i class="fa-solid fa-chevron-left"></i></button>
+          <div>
+            <h3 class="font-bold text-gray-800">Chat Đơn Hàng #<span id="chat-order-id"></span></h3>
+            <p class="text-[10px] text-gray-500">Khách hàng, Quán và Tài xế</p>
+          </div>
+        </div>
+      </div>
+      <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 flex flex-col pb-20">
+        <!-- Messages -->
+      </div>
+      <div class="bg-white p-3 border-t flex items-center space-x-2">
+        <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." class="flex-1 bg-gray-100 border-none rounded-full px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none text-sm" onkeypress="if(event.key==='Enter') sendChatMessage()">
+        <button onclick="sendChatMessage()" class="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow shadow-emerald-500/30 hover:bg-emerald-600"><i class="fa-solid fa-paper-plane"></i></button>
+      </div>
+    </div>
+
   <script>const currentRole = 'store';</script>
   <script src="common.js"></script>
   <script src="store.js"></script>

@@ -98,7 +98,7 @@
             <div class="w-12 h-1.5 bg-gray-600 rounded-full mx-auto mb-4"></div>
             <div class="flex justify-between items-center mb-4">
               <div><h3 class="font-bold text-xl" id="active-status-text">Đang đến quán</h3><p class="text-sm text-gray-400">Đơn hàng #<span id="active-id"></span></p></div>
-              <div onclick="alert('Tính năng Chat với khách đang phát triển!')" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-xl text-blue-400 cursor-pointer hover:bg-gray-600"><i class="fa-solid fa-comment-dots"></i></div>
+              <div id="driver-chat-btn" class="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-xl text-blue-400 cursor-pointer hover:bg-gray-600"><i class="fa-solid fa-comment-dots"></i></div>
             </div>
             <div class="bg-gray-700 p-3 rounded-xl mb-4 flex-1">
               <p class="text-xs text-gray-400 mb-1">Chi tiết món</p>
@@ -166,6 +166,26 @@
     </div>
 
   </div>
+
+    <!-- Chat Modal -->
+    <div id="chat-modal" class="hidden fixed inset-0 z-[500] bg-gray-100 flex flex-col">
+      <div class="bg-white shadow-sm px-4 py-3 flex items-center justify-between border-b">
+        <div class="flex items-center">
+          <button onclick="closeChat()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 mr-3"><i class="fa-solid fa-chevron-left"></i></button>
+          <div>
+            <h3 class="font-bold text-gray-800">Chat Đơn Hàng #<span id="chat-order-id"></span></h3>
+            <p class="text-[10px] text-gray-500">Khách hàng, Quán và Tài xế</p>
+          </div>
+        </div>
+      </div>
+      <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 flex flex-col pb-20">
+        <!-- Messages -->
+      </div>
+      <div class="bg-white p-3 border-t flex items-center space-x-2">
+        <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." class="flex-1 bg-gray-100 border-none rounded-full px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none text-sm" onkeypress="if(event.key==='Enter') sendChatMessage()">
+        <button onclick="sendChatMessage()" class="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow shadow-emerald-500/30 hover:bg-emerald-600"><i class="fa-solid fa-paper-plane"></i></button>
+      </div>
+    </div>
 
   <script>const currentRole = 'driver';</script>
   <script src="common.js"></script>

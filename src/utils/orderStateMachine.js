@@ -5,9 +5,10 @@
 
 const orderStates = {
   pending: ["finding_driver", "cancelled"],           // Quán nhận -> finding_driver, Khách hủy -> cancelled
-  finding_driver: ["preparing", "cancelled"],          // Tx nhận -> preparing, Khách/Quán hủy -> cancelled
-  preparing: ["delivering", "cancelled"],              // Tx lấy hàng -> delivering, Hủy có phạt -> cancelled
-  delivering: ["completed"],                           // Tx giao xong -> completed (KHÔNG cho hủy)
+  finding_driver: ["preparing"],                       // Tx nhận -> preparing
+  preparing: ["delivering"],                           // Tx lấy hàng -> delivering
+  delivering: ["arrived"],                             // Tx đến điểm giao -> arrived
+  arrived: ["completed"],                              // Tx giao xong -> completed (KHÔNG cho hủy)
   completed: [],
   cancelled: [],
 };

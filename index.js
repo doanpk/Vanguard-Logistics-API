@@ -30,6 +30,8 @@ app.get('/demo/*', (req, res) => res.sendFile(path.join(__dirname, 'public', req
 // Swagger Documentation – served at /api-docs
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+const messageRoutes = require("./src/routes/MessageRoutes");
+
 // Routes
 app.use("/api/orders", orderRoutes);
 app.use("/api/auth", authRoutes);
@@ -37,6 +39,7 @@ app.use("/api/customer/orders", customerOrderRoutes);
 app.use("/api/driver", driverOrderRoutes);
 app.use("/api/store", storeRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Centralized Error Handler (must be registered LAST, after all routes)
 app.use(errorHandler);

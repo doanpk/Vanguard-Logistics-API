@@ -31,6 +31,24 @@ class CustomerOrderController {
         return error(res, "Store ID, items array, and delivery address are required.", 400);
       }
 
+      // HCMC Validation
+      const isCoords = /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(deliveryAddress);
+      if (isCoords) {
+        const [latStr, lngStr] = deliveryAddress.split(',');
+        const lat = parseFloat(latStr);
+        const lng = parseFloat(lngStr);
+        // HCMC rough bounding box
+        if (lat < 10.3 || lat > 11.2 || lng < 106.3 || lng > 107.0) {
+          return error(res, "Tọa độ giao hàng nằm ngoài khu vực TP. Hồ Chí Minh.", 400);
+        }
+      } else {
+        const addressLower = deliveryAddress.toLowerCase();
+        const isHCM = addressLower.includes('hồ chí minh') || addressLower.includes('ho chi minh') || addressLower.includes('hcm') || addressLower.includes('sài gòn') || addressLower.includes('sai gon') || addressLower.includes('tp hcm');
+        if (!isHCM) {
+          return error(res, "Hệ thống chỉ hỗ trợ giao hàng trong khu vực TP. Hồ Chí Minh. Vui lòng ghi rõ 'Hồ Chí Minh' trong địa chỉ.", 400);
+        }
+      }
+
       const newOrder = await CustomerOrderService.createOrder(
         customerId,
         req.body,

@@ -63,6 +63,18 @@ function initDB() {
       )
     `);
 
+    db.run(`
+      CREATE TABLE IF NOT EXISTS OrderMessages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER NOT NULL,
+        sender_id INTEGER NOT NULL,
+        sender_role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(order_id) REFERENCES Orders(id)
+      )
+    `);
+
     // Migration for existing database
     db.run(`ALTER TABLE Users ADD COLUMN address TEXT`, (err) => { /* ignore if exists */ });
     db.run(`ALTER TABLE Users ADD COLUMN full_name TEXT`, (err) => { /* ignore if exists */ });
@@ -76,6 +88,7 @@ function initDB() {
     db.run(`ALTER TABLE Users ADD COLUMN lng REAL`, (err) => { /* ignore if exists */ });
     db.run(`ALTER TABLE Users ADD COLUMN is_open INTEGER DEFAULT 1`, (err) => { /* ignore if exists */ });
     db.run(`ALTER TABLE Users ADD COLUMN is_locked INTEGER DEFAULT 0`, (err) => { /* ignore if exists */ });
+    db.run(`ALTER TABLE Users ADD COLUMN category TEXT DEFAULT 'Thêm'`, (err) => { /* ignore if exists */ });
 
     db.run(`ALTER TABLE Orders ADD COLUMN store_id INTEGER`, (err) => { /* ignore if exists */ });
     db.run(`ALTER TABLE Orders ADD COLUMN total_price REAL`, (err) => { /* ignore if exists */ });

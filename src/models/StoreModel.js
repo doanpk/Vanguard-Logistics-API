@@ -21,7 +21,14 @@ class StoreModel {
   }
 
   static async getAllStores() {
-    const query = `SELECT id, username, address, lat, lng FROM Users WHERE role = 'store' AND (is_open = 1 OR is_open IS NULL)`;
+    const query = `
+      SELECT u.id, u.username, u.address, u.lat, u.lng, u.is_open, u.category,
+             GROUP_CONCAT(m.name, ', ') AS menu_items
+      FROM Users u
+      LEFT JOIN MenuItems m ON u.id = m.store_id
+      WHERE u.role = 'store' AND (u.is_open IS NULL OR u.is_open = 1)
+      GROUP BY u.id
+    `;
     return await DBQuery.all(query);
   }
 

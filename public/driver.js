@@ -41,15 +41,15 @@ window.refreshData = function() {
 
 async function loadDriverData() {
   try {
-    const resActive = await apiCall('/driver/orders', 'GET', null, 'driver');
+    const resActive = await apiCall('/driver/my-orders', 'GET', null, 'driver');
     const myOrders = resActive.data;
     
-    const preparingOrDelivering = myOrders.find(o => o.status === 'preparing' || o.status === 'delivering');
+    const activeOrder = myOrders.find(o => ['preparing', 'delivering', 'arrived'].includes(o.status));
     
-    if (preparingOrDelivering) {
+    if (activeOrder) {
       document.getElementById('incoming-order-popup').classList.add('hidden');
       document.getElementById('active-order-view').classList.remove('hidden');
-      renderActiveOrder(preparingOrDelivering);
+      renderActiveOrder(activeOrder);
     } else {
       document.getElementById('active-order-view').classList.add('hidden');
       if (isOnline) {
@@ -81,16 +81,35 @@ function showIncomingPopup(order) {
 function renderActiveOrder(order) {
   document.getElementById('active-id').textContent = order.id;
   document.getElementById('active-items').textContent = order.item_description;
+  document.getElementById('driver-chat-btn').onclick = () => openChat(order.id);
   
   const statusText = document.getElementById('active-status-text');
   const btnContainer = document.getElementById('active-action-btn-container');
   
   if (order.status === 'preparing') {
     statusText.textContent = "Đang đến lấy hàng";
-    btnContainer.innerHTML = `<button onclick="pickupOrder(${order.id})" class="w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-orange-500/30 text-lg hover:bg-orange-600">Đã lấy hàng</button>`;
+    btnContainer.innerHTML = `
+      <div class="flex space-x-2">
+        <button onclick="openChat(${order.id})" class="w-1/3 bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-600"><i class="fa-solid fa-comment-dots"></i> Chat</button>
+        <button onclick="pickupOrder(${order.id})" class="w-2/3 bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-orange-500/30 text-lg hover:bg-orange-600">Đã lấy hàng</button>
+      </div>
+    `;
   } else if (order.status === 'delivering') {
     statusText.textContent = "Đang giao cho khách";
-    btnContainer.innerHTML = `<button onclick="completeOrder(${order.id})" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-500/30 text-lg hover:bg-emerald-600">Giao hàng thành công</button>`;
+    btnContainer.innerHTML = `
+      <div class="flex space-x-2">
+        <button onclick="openChat(${order.id})" class="w-1/3 bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-600"><i class="fa-solid fa-comment-dots"></i> Chat</button>
+        <button onclick="arriveOrder(${order.id})" class="w-2/3 bg-purple-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-purple-500/30 text-lg hover:bg-purple-600">Đã đến nơi</button>
+      </div>
+    `;
+  } else if (order.status === 'arrived') {
+    statusText.textContent = "Đã đến điểm giao";
+    btnContainer.innerHTML = `
+      <div class="flex space-x-2">
+        <button onclick="openChat(${order.id})" class="w-1/3 bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-600"><i class="fa-solid fa-comment-dots"></i> Chat</button>
+        <button onclick="completeOrder(${order.id})" class="w-2/3 bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-500/30 text-lg hover:bg-emerald-600">Giao xong</button>
+      </div>
+    `;
   }
 
   // Draw Map
@@ -168,6 +187,13 @@ async function acceptOrder(id) {
 async function pickupOrder(id) {
   try {
     await apiCall(`/driver/orders/${id}/pickup`, 'PUT', null, 'driver');
+    loadDriverData();
+  } catch (err) { alert(err.message); }
+}
+
+async function arriveOrder(id) {
+  try {
+    await apiCall(`/driver/orders/${id}/arrive`, 'PUT', null, 'driver');
     loadDriverData();
   } catch (err) { alert(err.message); }
 }

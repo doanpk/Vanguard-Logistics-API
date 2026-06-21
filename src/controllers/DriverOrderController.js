@@ -33,6 +33,17 @@ class DriverOrderController {
     }
   }
 
+  static async arriveOrder(req, res, next) {
+    try {
+      const driverId = req.user.id;
+      const { id } = req.params;
+      const order = await DriverOrderService.arriveOrder(id, driverId);
+      return success(res, order, "Order arrived successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async completeOrder(req, res, next) {
     try {
       const driverId = req.user.id;

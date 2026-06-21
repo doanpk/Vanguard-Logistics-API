@@ -53,7 +53,10 @@
               <p class="text-sm opacity-90">Giao đến</p>
               <h3 id="header-address" class="font-bold text-lg truncate w-48">Đang tải vị trí... ▾</h3>
             </div>
-            <div class="bg-white/20 p-2 rounded-full"><i class="fa-solid fa-bell"></i></div>
+            <div onclick="switchTab('notifs', document.querySelectorAll('.nav-item')[2])" class="bg-white/20 p-2 rounded-full cursor-pointer hover:bg-white/30 relative">
+              <i class="fa-solid fa-bell"></i>
+              <span id="notif-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">!</span>
+            </div>
           </div>
           <div class="relative">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-400"></i>
@@ -74,10 +77,10 @@
 
         <!-- Categories -->
         <div class="px-4 grid grid-cols-4 gap-2 text-center text-xs text-gray-600 mb-4">
-          <div class="flex flex-col items-center"><div class="w-12 h-12 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center text-2xl mb-1"><i class="fa-solid fa-bowl-rice"></i></div>Cơm</div>
-          <div class="flex flex-col items-center"><div class="w-12 h-12 bg-amber-100 text-amber-500 rounded-2xl flex items-center justify-center text-2xl mb-1"><i class="fa-solid fa-burger"></i></div>FastFood</div>
-          <div class="flex flex-col items-center"><div class="w-12 h-12 bg-pink-100 text-pink-500 rounded-2xl flex items-center justify-center text-2xl mb-1"><i class="fa-solid fa-mug-hot"></i></div>Trà Sữa</div>
-          <div class="flex flex-col items-center"><div class="w-12 h-12 bg-blue-100 text-blue-500 rounded-2xl flex items-center justify-center text-2xl mb-1"><i class="fa-solid fa-ellipsis"></i></div>Thêm</div>
+          <div onclick="filterByCategory('Cơm')" class="flex flex-col items-center cursor-pointer hover:opacity-80 transition"><div class="w-12 h-12 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center text-2xl mb-1"><i class="fa-solid fa-bowl-rice"></i></div>Cơm</div>
+          <div onclick="filterByCategory('FastFood')" class="flex flex-col items-center cursor-pointer hover:opacity-80 transition"><div class="w-12 h-12 bg-amber-100 text-amber-500 rounded-2xl flex items-center justify-center text-2xl mb-1"><i class="fa-solid fa-burger"></i></div>FastFood</div>
+          <div onclick="filterByCategory('Trà Sữa')" class="flex flex-col items-center cursor-pointer hover:opacity-80 transition"><div class="w-12 h-12 bg-pink-100 text-pink-500 rounded-2xl flex items-center justify-center text-2xl mb-1"><i class="fa-solid fa-mug-hot"></i></div>Trà Sữa</div>
+          <div onclick="filterByCategory('Thêm')" class="flex flex-col items-center cursor-pointer hover:opacity-80 transition"><div class="w-12 h-12 bg-blue-100 text-blue-500 rounded-2xl flex items-center justify-center text-2xl mb-1"><i class="fa-solid fa-ellipsis"></i></div>Thêm</div>
         </div>
 
         <!-- Store List -->
@@ -87,7 +90,8 @@
             <!-- Rendered by JS -->
           </div>
         </div>
-      </div>
+
+        </div>
 
       <!-- STORE MENU VIEW (Inside Home Tab) -->
       <div id="store-menu-view" class="hidden bg-white min-h-screen z-20 absolute top-0 left-0 w-full pb-24">
@@ -112,29 +116,30 @@
       </div>
 
       <!-- CART/CHECKOUT MODAL -->
-      <div id="checkout-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-        <div class="bg-white w-full max-w-md h-[85vh] rounded-t-3xl flex flex-col">
-          <div class="p-4 border-b flex justify-between items-center">
+      <div id="checkout-modal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-end justify-center">
+        <div class="bg-white w-full max-w-md rounded-t-3xl flex flex-col" style="max-height: 80vh;">
+          <div class="p-4 border-b flex justify-between items-center flex-shrink-0">
             <h3 class="font-bold text-lg">Giỏ hàng của bạn</h3>
             <button onclick="closeCart()"><i class="fa-solid fa-xmark text-xl text-gray-500"></i></button>
           </div>
-          <div class="p-4 flex-1 overflow-y-auto">
-            <ul id="cart-items-list" class="space-y-3 mb-6"></ul>
+          <div class="p-4 flex-1 overflow-y-auto min-h-0">
+            <ul id="cart-items-list" class="space-y-3 mb-4"></ul>
             <div class="bg-gray-50 p-4 rounded-xl border">
               <h4 class="font-semibold text-sm mb-2 text-gray-600">Giao đến:</h4>
               <div class="flex items-center space-x-2">
-                <input type="text" id="delivery-address" placeholder="Nhập địa chỉ nhận hàng" class="w-full p-2 border rounded outline-none text-sm focus:border-emerald-500">
-                <button onclick="getLocation()" class="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200" title="Lấy tọa độ GPS"><i class="fa-solid fa-location-crosshairs"></i></button>
+                <input type="text" id="delivery-address" placeholder="Nhập địa chỉ (TP.HCM)..." class="w-full p-2 border rounded outline-none text-sm focus:border-emerald-500">
+                <button onclick="getLocation()" class="bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200 flex-shrink-0" title="Lấy tọa độ GPS"><i class="fa-solid fa-location-crosshairs"></i></button>
               </div>
             </div>
-            <div class="mt-4 space-y-2 text-sm text-gray-600">
+            <div class="mt-3 space-y-2 text-sm text-gray-600">
               <div class="flex justify-between"><span>Tạm tính</span><span id="cart-subtotal">0đ</span></div>
-              <div class="flex justify-between"><span>Phí giao hàng (Tạm tính)</span><span class="text-orange-500">~15.000đ</span></div>
+              <div class="flex justify-between"><span>Phí giao hàng (ước tính)</span><span class="text-orange-500">~15.000đ</span></div>
+              <p class="text-xs text-gray-400 mt-1">* Phí chính xác sẽ tính theo khoảng cách thực tế (Haversine)</p>
               <div class="border-t pt-2 flex justify-between font-bold text-lg text-gray-800"><span>Tổng thanh toán</span><span id="cart-final">0đ</span></div>
             </div>
           </div>
-          <div class="p-4 border-t">
-            <button onclick="submitOrder()" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-emerald-600">Đặt Đơn (Bằng Ví)</button>
+          <div class="p-4 border-t flex-shrink-0">
+            <button onclick="submitOrder()" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-emerald-600 active:bg-emerald-700 transition">Đặt Đơn (Bằng Ví)</button>
           </div>
         </div>
       </div>
@@ -176,19 +181,13 @@
         <div class="p-4 pt-8 border-b">
           <h2 class="text-xl font-bold">Thông báo</h2>
         </div>
-        <div class="p-4 space-y-4">
-          <div class="flex space-x-3 items-start opacity-50">
-            <div class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-check"></i></div>
-            <div>
-              <p class="font-semibold text-sm">Đơn hàng đã hoàn thành</p>
-              <p class="text-xs text-gray-500">Cơm Hưng Ký đã được giao thành công. Chúc bạn ngon miệng!</p>
-            </div>
-          </div>
+        <div class="p-4 space-y-4" id="notif-list">
           <div class="flex space-x-3 items-start">
             <div class="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-gift"></i></div>
             <div>
               <p class="font-semibold text-sm">Tặng bạn 50K 🎁</p>
               <p class="text-xs text-gray-500">Mã GIAM50K đã được thêm vào ví voucher của bạn.</p>
+              <p class="text-xs text-gray-400 mt-1">Hôm nay</p>
             </div>
           </div>
         </div>
@@ -209,7 +208,11 @@
               <p class="text-xs text-gray-500 font-semibold mb-1">Số dư Ví Moca</p>
               <p class="text-xl font-bold text-emerald-600"><span class="profile-balance">0</span>đ</p>
             </div>
-            <button onclick="depositWallet('customer', 500000)" class="bg-emerald-100 text-emerald-600 px-4 py-2 rounded-lg font-bold text-sm">Nạp 500k</button>
+            <div class="flex space-x-2">
+              <button onclick="depositWallet('customer', 100000)" class="bg-emerald-50 text-emerald-600 px-3 py-2 rounded-lg font-bold text-xs hover:bg-emerald-100">+100k</button>
+              <button onclick="depositWallet('customer', 500000)" class="bg-emerald-100 text-emerald-600 px-3 py-2 rounded-lg font-bold text-xs hover:bg-emerald-200">+500k</button>
+              <button onclick="customDeposit()" class="bg-emerald-500 text-white px-3 py-2 rounded-lg font-bold text-xs hover:bg-emerald-600">Nạp</button>
+            </div>
           </div>
         </div>
         <div class="p-4 mt-2 space-y-2">
@@ -236,6 +239,26 @@
     </div>
 
   </div>
+
+    <!-- Chat Modal -->
+    <div id="chat-modal" class="hidden fixed inset-0 z-[500] bg-gray-100 flex flex-col">
+      <div class="bg-white shadow-sm px-4 py-3 flex items-center justify-between border-b">
+        <div class="flex items-center">
+          <button onclick="closeChat()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 mr-3"><i class="fa-solid fa-chevron-left"></i></button>
+          <div>
+            <h3 class="font-bold text-gray-800">Chat Đơn Hàng #<span id="chat-order-id"></span></h3>
+            <p class="text-[10px] text-gray-500">Khách hàng, Quán và Tài xế</p>
+          </div>
+        </div>
+      </div>
+      <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 flex flex-col pb-20">
+        <!-- Messages -->
+      </div>
+      <div class="bg-white p-3 border-t flex items-center space-x-2">
+        <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." class="flex-1 bg-gray-100 border-none rounded-full px-4 py-3 focus:ring-2 focus:ring-emerald-500 outline-none text-sm" onkeypress="if(event.key==='Enter') sendChatMessage()">
+        <button onclick="sendChatMessage()" class="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow shadow-emerald-500/30 hover:bg-emerald-600"><i class="fa-solid fa-paper-plane"></i></button>
+      </div>
+    </div>
 
   <script>const currentRole = 'customer';</script>
   <script src="common.js"></script>

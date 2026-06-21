@@ -124,6 +124,29 @@ router.put("/orders/:id/accept", DriverOrderController.acceptOrder);
  *         description: Order picked up successfully
  */
 router.put("/orders/:id/pickup", DriverOrderController.pickupOrder);
+
+/**
+ * @openapi
+ * /api/driver/orders/{id}/arrive:
+ *   put:
+ *     summary: Arrive at delivery location
+ *     description: Driver arrives at the delivery location, changing status to arrived.
+ *     tags:
+ *       - Driver Operations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Order arrived successfully
+ */
+router.put("/orders/:id/arrive", DriverOrderController.arriveOrder);
+
 /**
  * @openapi
  * /api/driver/orders/{id}/complete:

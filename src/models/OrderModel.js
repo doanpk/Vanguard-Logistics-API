@@ -43,9 +43,12 @@ class OrderModel {
 
   static async findByCustomerId(customerId) {
     const query = `
-      SELECT Orders.*, Users.lat AS store_lat, Users.lng AS store_lng 
+      SELECT Orders.*, 
+             StoreUser.lat AS store_lat, StoreUser.lng AS store_lng, StoreUser.username AS store_name, StoreUser.phone_number AS store_phone,
+             DriverUser.full_name AS driver_name, DriverUser.phone_number AS driver_phone
       FROM Orders 
-      LEFT JOIN Users ON Orders.store_id = Users.id 
+      LEFT JOIN Users AS StoreUser ON Orders.store_id = StoreUser.id 
+      LEFT JOIN Users AS DriverUser ON Orders.driver_id = DriverUser.id
       WHERE Orders.customer_id = ? 
       ORDER BY Orders.created_at DESC
     `;
@@ -54,9 +57,12 @@ class OrderModel {
 
   static async findByIdAndCustomerId(id, customerId) {
     const query = `
-      SELECT Orders.*, Users.lat AS store_lat, Users.lng AS store_lng 
+      SELECT Orders.*, 
+             StoreUser.lat AS store_lat, StoreUser.lng AS store_lng, StoreUser.username AS store_name, StoreUser.phone_number AS store_phone,
+             DriverUser.full_name AS driver_name, DriverUser.phone_number AS driver_phone
       FROM Orders 
-      LEFT JOIN Users ON Orders.store_id = Users.id 
+      LEFT JOIN Users AS StoreUser ON Orders.store_id = StoreUser.id 
+      LEFT JOIN Users AS DriverUser ON Orders.driver_id = DriverUser.id
       WHERE Orders.id = ? AND Orders.customer_id = ?
     `;
     return await DBQuery.get(query, [id, customerId]);
@@ -64,9 +70,9 @@ class OrderModel {
 
   static async findPendingOrders() {
     const query = `
-      SELECT Orders.*, Users.lat AS store_lat, Users.lng AS store_lng 
+      SELECT Orders.*, StoreUser.lat AS store_lat, StoreUser.lng AS store_lng 
       FROM Orders 
-      LEFT JOIN Users ON Orders.store_id = Users.id 
+      LEFT JOIN Users AS StoreUser ON Orders.store_id = StoreUser.id 
       WHERE Orders.status = 'finding_driver' AND Orders.driver_id IS NULL 
       ORDER BY Orders.created_at DESC
     `;
@@ -107,12 +113,23 @@ class OrderModel {
     return await this.findById(id);
   }
 
+  static async arriveOrder(id, driverId) {
+    const query = `
+      UPDATE Orders 
+      SET status = 'arrived' 
+      WHERE id = ? AND driver_id = ? AND status = 'delivering'
+    `;
+    const result = await DBQuery.run(query, [id, driverId]);
+    if (result.changes === 0) return null;
+    return await this.findById(id);
+  }
+
   // Bug 2 Fix: Atomic UPDATE ensures only the assigned driver can complete
   static async completeOrder(id, driverId) {
     const query = `
       UPDATE Orders 
       SET status = 'completed' 
-      WHERE id = ? AND driver_id = ? AND status = 'delivering'
+      WHERE id = ? AND driver_id = ? AND status = 'arrived'
     `;
     const result = await DBQuery.run(query, [id, driverId]);
     if (result.changes === 0) return null;

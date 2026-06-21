@@ -1,33 +1,51 @@
+let storeCarts = {}; // { storeId: { items: [], storeName: '' } }
 let currentStoreId = null;
-let cart = [];
+let cart = []; // Points to current store's items array
 let activeMapOrder = null;
-let allStores = []; // Store for filtering
+let allStores = [];
+let currentStoreName = "";
+let currentCategory = null;
 
-// Tab Switching
+// Load multi-carts on start
+try {
+  const saved = localStorage.getItem('customerCarts');
+  if (saved) {
+    storeCarts = JSON.parse(saved);
+  }
+} catch(e) {}
+
+// ===== TAB SWITCHING =====
 function switchTab(tabId, element) {
+  // Close store menu if open
+  document.getElementById('store-menu-view').classList.add('hidden');
+  document.getElementById('tab-home').classList.remove('hidden');
+
   document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
   document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-  
+
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  element.classList.add('active');
-  
+  if (element) element.classList.add('active');
+
   if (tabId === 'orders') {
     loadCustomerOrders();
     switchOrderTab('active');
   }
+  if (tabId === 'profile') {
+    loadProfileData();
+  }
 }
 
-// Order sub-tab switching
+// ===== ORDER SUB-TAB =====
 function switchOrderTab(subTab) {
   const btnActive = document.getElementById('btn-tab-active');
   const btnHistory = document.getElementById('btn-tab-history');
-  
+
   if (subTab === 'active') {
     btnActive.className = 'pb-2 border-b-2 border-emerald-500 font-bold text-emerald-600';
     btnHistory.className = 'pb-2 font-bold text-gray-400';
     document.getElementById('active-orders-container').classList.remove('hidden');
     document.getElementById('history-orders-container').classList.add('hidden');
-    if(activeMapOrder) document.getElementById('map-wrapper').classList.remove('hidden');
+    if (activeMapOrder) document.getElementById('map-wrapper').classList.remove('hidden');
   } else {
     btnActive.className = 'pb-2 font-bold text-gray-400';
     btnHistory.className = 'pb-2 border-b-2 border-emerald-500 font-bold text-emerald-600';
@@ -37,88 +55,144 @@ function switchOrderTab(subTab) {
   }
 }
 
-// Override auth flow to show Bottom Nav
-const originalRefresh = window.refreshData;
-window.refreshData = function() {
+// ===== AUTH FLOW =====
+window.refreshData = function () {
   if (tokens.customer) {
     document.getElementById('auth-section').style.display = 'none';
     document.getElementById('main-content').style.display = 'block';
     document.getElementById('bottom-nav').style.display = 'flex';
-    
-    loadProfile('customer').then(() => {
-      // Update header address and avatar after loading profile
-      const userStr = localStorage.getItem('customerProfile');
-      if(userStr) {
-        const u = JSON.parse(userStr);
-        if(u.lat && u.lng) document.getElementById('header-address').textContent = 'Vị trí GPS của bạn ▾';
-        else document.getElementById('header-address').textContent = 'Ký Túc Xá UTC2 ▾';
-        document.getElementById('profile-avatar').src = `https://ui-avatars.com/api/?name=${u.full_name || u.username}&background=random`;
-      }
-    });
-    if (!currentStoreId) loadCustomerStores();
+
+    loadProfileData();
+    if (!currentStoreId && allStores.length === 0) loadCustomerStores();
     loadCustomerOrders();
+    updateCartUI(); // Update global cart if exists
   }
 };
 
+// ===== PROFILE (Fixed: querySelector on #main-content, not #customer-dashboard) =====
+async function loadProfileData() {
+  try {
+    const res = await apiCall('/users/profile', 'GET', null, 'customer');
+    const p = res.data;
+
+    // Update all profile-name elements
+    document.querySelectorAll('.profile-name').forEach(el => el.textContent = p.full_name || p.username);
+    document.querySelectorAll('.profile-balance').forEach(el => el.textContent = (p.balance || 0).toLocaleString('vi-VN'));
+    document.querySelectorAll('.profile-phone').forEach(el => el.textContent = p.phone_number || '090xxxxxxx');
+
+    // Avatar
+    const avatar = document.getElementById('profile-avatar');
+    if (avatar) avatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name || p.username)}&background=random`;
+
+    // Header address
+    const hdr = document.getElementById('header-address');
+    if (hdr) {
+      if (p.lat && p.lng) hdr.textContent = 'Vị trí GPS của bạn ▾';
+      else hdr.textContent = 'Ký Túc Xá UTC2 ▾';
+    }
+  } catch (e) { console.error('Profile load error:', e); }
+}
+
+// ===== STORE LIST =====
 async function loadCustomerStores() {
   try {
     const res = await apiCall('/customer/orders/stores', 'GET', null, 'customer');
     allStores = res.data;
     renderStores(allStores);
-  } catch(e) {}
+  } catch (e) { console.error(e); }
 }
 
 function renderStores(stores) {
   const container = document.getElementById('store-list-container');
-  if (stores.length === 0) {
-    container.innerHTML = '<p class="text-gray-500 text-sm">Chưa có quán nào trên hệ thống hoặc phù hợp tìm kiếm.</p>';
+  if (!stores || stores.length === 0) {
+    container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">Chưa có quán nào trên hệ thống.</p>';
     return;
   }
-  
+
   container.innerHTML = stores.map(s => `
-    <div onclick="viewStoreMenu(${s.id}, '${s.username}')" class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-3 cursor-pointer">
-      <img src="https://ui-avatars.com/api/?name=${s.username}&background=random" class="w-16 h-16 rounded-lg object-cover">
+    <div onclick="viewStoreMenu(${s.id}, '${s.username.replace(/'/g, "\\'")}')" class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-3 cursor-pointer hover:shadow-md transition">
+      <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(s.username)}&background=random" class="w-16 h-16 rounded-lg object-cover">
       <div class="flex-1">
-        <h3 class="font-bold text-gray-800">${s.username}</h3>
-        <p class="text-xs text-gray-500 truncate"><i class="fa-solid fa-location-dot mr-1"></i>${s.address || 'Đang cập nhật'}</p>
+        <h3 class="font-bold text-gray-800">${s.username} ${s.category ? `<span class="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-md font-normal ml-1">${s.category}</span>` : ''}</h3>
+        <p class="text-xs text-gray-500 truncate mt-1"><i class="fa-solid fa-location-dot mr-1"></i>${s.address || 'Đang cập nhật'}</p>
         <p class="text-xs text-orange-500 font-semibold mt-1"><i class="fa-solid fa-star text-yellow-400"></i> 5.0 (99+)</p>
       </div>
     </div>
   `).join('');
 }
 
+function filterByCategory(cat) {
+  if (currentCategory === cat) {
+    currentCategory = null; // Toggle off if clicked again
+  } else {
+    currentCategory = cat;
+  }
+  applyFilters();
+}
+
 function filterStores() {
+  applyFilters();
+}
+
+function applyFilters() {
+  let filtered = allStores;
   const q = document.getElementById('search-store').value.toLowerCase();
-  const filtered = allStores.filter(s => s.username.toLowerCase().includes(q) || (s.address && s.address.toLowerCase().includes(q)));
+  
+  if (q) {
+    filtered = filtered.filter(s => 
+      s.username.toLowerCase().includes(q) || 
+      (s.address && s.address.toLowerCase().includes(q)) ||
+      (s.menu_items && s.menu_items.toLowerCase().includes(q))
+    );
+  }
+  
+  if (currentCategory) {
+    if (currentCategory === 'Thêm') {
+      filtered = filtered.filter(s => !['Cơm', 'FastFood', 'Trà Sữa'].includes(s.category));
+    } else {
+      filtered = filtered.filter(s => s.category === currentCategory);
+    }
+  }
+  
   renderStores(filtered);
 }
 
+// ===== STORE MENU =====
 async function viewStoreMenu(storeId, storeName) {
   document.getElementById('tab-home').classList.add('hidden');
   document.getElementById('store-menu-view').classList.remove('hidden');
   document.getElementById('menu-store-name').textContent = storeName;
   currentStoreId = storeId;
-  cart = [];
+  currentStoreName = storeName;
+  
+  // Load specific cart for this store
+  if (!storeCarts[storeId]) {
+    storeCarts[storeId] = { items: [], storeName: storeName };
+  }
+  cart = storeCarts[storeId].items;
   updateCartUI();
 
   try {
     const res = await apiCall(`/customer/orders/stores/${storeId}/menu`, 'GET', null, 'customer');
     const container = document.getElementById('menu-list-container');
-    let html = '';
-    res.data.menu.forEach(item => {
-      html += `
-        <div class="flex justify-between items-center border-b pb-3 border-gray-100">
-          <div class="flex-1 pr-4">
-            <h4 class="font-bold text-gray-800 text-sm">${item.name}</h4>
-            <p class="text-xs text-gray-500 my-1 truncate">${item.description || ''}</p>
-            <p class="font-semibold text-emerald-600 text-sm">${item.price.toLocaleString('vi-VN')}đ</p>
-          </div>
-          <button onclick="addToCart('${item.name}', ${item.price})" class="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-bold text-lg hover:bg-emerald-200 shadow-sm">+</button>
+    const menuItems = res.data.menu;
+
+    if (!menuItems || menuItems.length === 0) {
+      container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">Quán chưa có món nào.</p>';
+      return;
+    }
+
+    container.innerHTML = menuItems.map(item => `
+      <div class="flex justify-between items-center border-b pb-3 border-gray-100">
+        <div class="flex-1 pr-4">
+          <h4 class="font-bold text-gray-800 text-sm">${item.name}</h4>
+          <p class="text-xs text-gray-500 my-1 truncate">${item.description || ''}</p>
+          <p class="font-semibold text-emerald-600 text-sm">${item.price.toLocaleString('vi-VN')}đ</p>
         </div>
-      `;
-    });
-    container.innerHTML = html;
-  } catch(e) {
+        <button onclick="addToCart('${item.name.replace(/'/g, "\\'")}', ${item.price})" class="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-bold text-lg hover:bg-emerald-200 shadow-sm flex-shrink-0">+</button>
+      </div>
+    `).join('');
+  } catch (e) {
     alert("Lỗi tải menu: " + e.message);
   }
 }
@@ -126,10 +200,10 @@ async function viewStoreMenu(storeId, storeName) {
 function closeStoreMenu() {
   document.getElementById('store-menu-view').classList.add('hidden');
   document.getElementById('tab-home').classList.remove('hidden');
-  currentStoreId = null;
   document.getElementById('cart-float').classList.add('hidden');
 }
 
+// ===== CART =====
 function addToCart(name, price) {
   const existing = cart.find(i => i.name === name);
   if (existing) existing.qty++;
@@ -137,29 +211,67 @@ function addToCart(name, price) {
   updateCartUI();
 }
 
+function removeFromCart(name) {
+  const idx = cart.findIndex(i => i.name === name);
+  if (idx > -1) {
+    cart[idx].qty--;
+    if (cart[idx].qty <= 0) cart.splice(idx, 1);
+  }
+  updateCartUI();
+}
+
+function deleteFromCart(name) {
+  cart = cart.filter(i => i.name !== name);
+  updateCartUI();
+}
+
 function updateCartUI() {
   let total = 0;
   let count = 0;
   cart.forEach(i => { total += i.qty * i.price; count += i.qty; });
-  
-  if (count > 0) {
-    document.getElementById('cart-float').classList.remove('hidden');
-    document.getElementById('cart-badge').textContent = count;
-    document.getElementById('cart-total-float').textContent = total.toLocaleString('vi-VN') + 'đ';
+
+  // Save to local storage for multi-cart
+  if (cart.length === 0) {
+    delete storeCarts[currentStoreId];
   } else {
-    document.getElementById('cart-float').classList.add('hidden');
+    storeCarts[currentStoreId] = { items: cart, storeName: currentStoreName };
+  }
+  localStorage.setItem('customerCarts', JSON.stringify(storeCarts));
+
+  // Float button inside menu
+  const floatBtn = document.getElementById('cart-float');
+  if (floatBtn) {
+    if (count > 0 && !document.getElementById('store-menu-view').classList.contains('hidden')) {
+      floatBtn.classList.remove('hidden');
+      document.getElementById('cart-badge').textContent = count;
+      document.getElementById('cart-total-float').textContent = total.toLocaleString('vi-VN') + 'đ';
+    } else {
+      floatBtn.classList.add('hidden');
+    }
   }
 
-  // Modal Update
+  // Cart modal items with +/- buttons
   const list = document.getElementById('cart-items-list');
-  list.innerHTML = cart.map(i => `
-    <li class="flex justify-between items-center text-sm">
-      <div class="font-semibold text-gray-800"><span class="text-emerald-500 mr-2">${i.qty}x</span> ${i.name}</div>
-      <div class="text-gray-600">${(i.qty * i.price).toLocaleString('vi-VN')}đ</div>
+  if (list) {
+    list.innerHTML = cart.map(i => `
+    <li class="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+      <div class="flex-1">
+        <p class="font-semibold text-gray-800 text-sm">${i.name}</p>
+        <p class="text-xs text-gray-500">${i.price.toLocaleString('vi-VN')}đ/món</p>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button onclick="removeFromCart('${i.name.replace(/'/g, "\\'")}')" class="w-7 h-7 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center font-bold hover:bg-gray-300">−</button>
+        <span class="font-bold text-sm w-6 text-center">${i.qty}</span>
+        <button onclick="addToCart('${i.name.replace(/'/g, "\\'")}', ${i.price})" class="w-7 h-7 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-bold hover:bg-emerald-200">+</button>
+        <button onclick="deleteFromCart('${i.name.replace(/'/g, "\\'")}')" class="ml-1 text-red-400 hover:text-red-600"><i class="fa-solid fa-trash-can text-xs"></i></button>
+      </div>
+      <p class="font-bold text-emerald-600 text-sm ml-3 w-20 text-right">${(i.qty * i.price).toLocaleString('vi-VN')}đ</p>
     </li>
   `).join('');
-  
+  }
+
   document.getElementById('cart-subtotal').textContent = total.toLocaleString('vi-VN') + 'đ';
+  // Phí ship tạm tính ~15k, backend sẽ tính chính xác bằng Haversine
   document.getElementById('cart-final').textContent = (total + 15000).toLocaleString('vi-VN') + 'đ';
 }
 
@@ -170,6 +282,7 @@ function closeCart() {
   document.getElementById('checkout-modal').classList.add('hidden');
 }
 
+// ===== GEOLOCATION =====
 function getLocation() {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
@@ -184,58 +297,126 @@ function getLocation() {
   }
 }
 
+// ===== SUBMIT ORDER =====
 async function submitOrder() {
   if (cart.length === 0) return alert('Giỏ hàng trống!');
   const deliveryAddress = document.getElementById('delivery-address').value;
   if (!deliveryAddress) return alert('Vui lòng nhập địa chỉ giao hàng!');
 
+  const isCoords = /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(deliveryAddress);
+  if (isCoords) {
+    const [latStr, lngStr] = deliveryAddress.split(',');
+    const lat = parseFloat(latStr);
+    const lng = parseFloat(lngStr);
+    if (lat < 10.3 || lat > 11.2 || lng < 106.3 || lng > 107.0) {
+      return alert("Tọa độ của bạn nằm ngoài khu vực TP. Hồ Chí Minh. Hệ thống chưa hỗ trợ giao hàng ở đây.");
+    }
+  } else {
+    const addressLower = deliveryAddress.toLowerCase();
+    const isHCM = addressLower.includes('hồ chí minh') || addressLower.includes('ho chi minh') || addressLower.includes('hcm') || addressLower.includes('sài gòn') || addressLower.includes('sai gon') || addressLower.includes('tp hcm');
+    if (!isHCM) {
+      return alert("Rất tiếc, chúng tôi hiện tại chỉ hỗ trợ giao hàng trong khu vực TP. Hồ Chí Minh. Vui lòng ghi rõ 'Hồ Chí Minh' vào địa chỉ của bạn hoặc sử dụng Tọa độ GPS hiện tại.");
+    }
+  }
+
   try {
-    await apiCall('/customer/orders', 'POST', { storeId: currentStoreId, items: cart, deliveryAddress }, 'customer');
-    alert('Đặt hàng thành công!');
+    const res = await apiCall('/customer/orders', 'POST', { storeId: currentStoreId, items: cart, deliveryAddress }, 'customer');
+    const order = res.data;
+    const fee = order.delivery_fee ? order.delivery_fee.toLocaleString('vi-VN') : '15.000';
+
+    alert(`Đặt hàng thành công! (Phí ship: ${fee}đ)`);
+    // Clear cart upon successful order
+    cart = [];
+    delete storeCarts[currentStoreId];
+    localStorage.setItem('customerCarts', JSON.stringify(storeCarts));
+    updateCartUI();
+
     closeCart();
     closeStoreMenu();
     document.getElementById('delivery-address').value = '';
+
+    // Cập nhật balance ngay
+    loadProfileData();
+    
     // Chuyển sang tab Đơn hàng
-    document.querySelectorAll('.nav-item')[1].click();
+    switchTab('orders', document.querySelectorAll('.nav-item')[1]);
   } catch (err) {
     alert(`Lỗi đặt hàng: ${err.message}`);
   }
 }
 
+// ===== ORDERS =====
+let lastOrderStatuses = {};
+
 async function loadCustomerOrders() {
   try {
     const res = await apiCall('/customer/orders', 'GET', null, 'customer');
-    renderCustomerOrders(res.data);
-  } catch(e) {}
+    const orders = res.data || [];
+    
+    // Check for status changes
+    orders.forEach(o => {
+      if (lastOrderStatuses[o.id] && lastOrderStatuses[o.id] !== o.status) {
+        showToast(`Đơn hàng #${o.id} chuyển sang: ${translateStatus(o.status)}`, 'fa-bell', 'bg-blue-500');
+      }
+      lastOrderStatuses[o.id] = o.status;
+    });
+
+    renderCustomerOrders(orders);
+  } catch (e) { console.error(e); }
 }
 
 function translateStatusHTML(status) {
   const map = {
-    'pending': '<span class="text-gray-600 bg-gray-100 px-2 py-1 rounded text-xs font-bold">Chờ Xác Nhận</span>',
-    'finding_driver': '<span class="text-orange-600 bg-orange-100 px-2 py-1 rounded text-xs font-bold">Tìm Tài Xế</span>',
-    'preparing': '<span class="text-blue-600 bg-blue-100 px-2 py-1 rounded text-xs font-bold">Quán Đang Làm</span>',
-    'delivering': '<span class="text-emerald-600 bg-emerald-100 px-2 py-1 rounded text-xs font-bold">Tài Xế Đang Giao</span>',
-    'completed': '<span class="text-gray-500 bg-gray-200 px-2 py-1 rounded text-xs font-bold">Đã Giao Xong</span>',
+    'pending': '<span class="text-gray-600 bg-gray-100 px-2 py-1 rounded text-xs font-bold">Chờ Quán Nhận</span>',
+    'finding_driver': '<span class="text-orange-600 bg-orange-100 px-2 py-1 rounded text-xs font-bold animate-pulse">Đang Tìm Tài Xế</span>',
+    'preparing': '<span class="text-blue-600 bg-blue-100 px-2 py-1 rounded text-xs font-bold">Quán Đang Nấu</span>',
+    'delivering': '<span class="text-emerald-600 bg-emerald-100 px-2 py-1 rounded text-xs font-bold animate-pulse">Đang Giao Hàng</span>',
+    'arrived': '<span class="text-purple-600 bg-purple-100 px-2 py-1 rounded text-xs font-bold animate-bounce">Tài Xế Đã Đến</span>',
+    'completed': '<span class="text-gray-500 bg-gray-200 px-2 py-1 rounded text-xs font-bold">Đã Giao Xong ✓</span>',
     'cancelled': '<span class="text-red-500 bg-red-100 px-2 py-1 rounded text-xs font-bold">Đã Hủy</span>'
   };
   return map[status] || status;
 }
 
 function renderOrderCard(o) {
+  const totalMoney = ((o.total_price || 0) + (o.delivery_fee || 0)).toLocaleString('vi-VN');
+  const canCancel = o.status === 'pending';
+  const cancelLabel = 'Hủy đơn';
+  const timeAgo = o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '';
+
+  let driverInfo = '';
+  if (o.driver_name && ['preparing', 'delivering', 'arrived', 'completed'].includes(o.status)) {
+    driverInfo = `
+      <div class="mt-2 p-2 bg-blue-50 rounded-lg flex items-center border border-blue-100">
+        <div class="w-8 h-8 bg-blue-200 text-blue-600 rounded-full flex items-center justify-center mr-2"><i class="fa-solid fa-motorcycle"></i></div>
+        <div class="flex-1">
+          <p class="text-xs font-bold text-gray-800">${o.driver_name}</p>
+          <p class="text-[10px] text-gray-500">${o.driver_phone || 'Không có sđt'}</p>
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-      <div class="flex justify-between items-start mb-3">
-        <div>
-          <h4 class="font-bold text-gray-800 text-sm">Đơn hàng #${o.id}</h4>
-          <p class="text-xs text-gray-500">${o.item_description}</p>
+      <div class="flex justify-between items-start mb-2">
+        <div class="flex-1 pr-2">
+          <h4 class="font-bold text-gray-800 text-sm">Đơn #${o.id} <span class="font-normal text-xs text-gray-500">• ${o.store_name || 'Quán'}</span></h4>
+          <p class="text-xs text-gray-500 mt-1">${o.item_description || ''}</p>
+          <p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-location-dot mr-1"></i>${o.delivery_address || ''}</p>
         </div>
         ${translateStatusHTML(o.status)}
       </div>
-      <div class="flex justify-between items-center border-t pt-3 mt-2">
-        <div class="text-emerald-600 font-bold">${((o.total_price||0) + (o.delivery_fee||0)).toLocaleString('vi-VN')}đ</div>
-        ${['pending', 'finding_driver', 'preparing'].includes(o.status) 
-          ? `<button onclick="cancelOrder(${o.id})" class="text-red-500 text-sm font-bold">${o.status === 'preparing' ? 'Hủy (phạt 20%)' : 'Hủy đơn'}</button>` 
-          : ''}
+      ${driverInfo}
+      <div class="flex justify-between items-center border-t pt-3 mt-3">
+        <div>
+          <span class="text-emerald-600 font-bold">${totalMoney}đ</span>
+          <span class="text-xs text-gray-400 ml-2">${timeAgo}</span>
+        </div>
+        <div class="flex space-x-2">
+          ${canCancel ? `<button onclick="cancelOrder(${o.id})" class="text-red-500 text-sm font-bold hover:text-red-700 bg-red-50 px-3 py-1 rounded-lg">${cancelLabel}</button>` : ''}
+          ${['finding_driver', 'preparing', 'delivering', 'arrived'].includes(o.status) ? `<button onclick="openChat(${o.id})" class="text-blue-600 text-sm font-bold hover:text-blue-700 bg-blue-50 px-3 py-1 rounded-lg"><i class="fa-solid fa-comment-dots mr-1"></i>Chat</button>` : ''}
+        </div>
       </div>
     </div>
   `;
@@ -248,51 +429,31 @@ function renderCustomerOrders(orders) {
   const containerActive = document.getElementById('active-orders-container');
   const containerHistory = document.getElementById('history-orders-container');
 
+  // Active Orders
   if (activeOrders.length === 0) {
     containerActive.innerHTML = '<p class="text-center text-gray-500 py-8 text-sm">Không có đơn hàng nào đang giao.</p>';
     document.getElementById('map-wrapper').classList.add('hidden');
+    activeMapOrder = null;
   } else {
     containerActive.innerHTML = activeOrders.map(renderOrderCard).join('');
-    
+
+    // Find order to show on map
     activeMapOrder = null;
-    activeOrders.forEach(o => {
-      if ((o.status === 'delivering' || o.status === 'preparing') && o.store_lat && o.lat && !activeMapOrder) {
+    for (const o of activeOrders) {
+      if ((o.status === 'delivering' || o.status === 'preparing') && o.store_lat && o.lat) {
         activeMapOrder = o;
+        break;
       }
-    });
+    }
 
     if (activeMapOrder && window.L && document.getElementById('btn-tab-active').className.includes('emerald')) {
-      document.getElementById('map-wrapper').classList.remove('hidden');
-      if (!window.myMap) {
-        window.myMap = L.map('map', { zoomControl: false }).setView([10.845, 106.794], 14);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(window.myMap);
-        window.mapLayerGroup = L.layerGroup().addTo(window.myMap);
-      }
-      
-      window.mapLayerGroup.clearLayers();
-      if (window.routingControl) {
-        window.myMap.removeControl(window.routingControl);
-        window.routingControl = null;
-      }
-      
-      const storePoint = L.latLng(activeMapOrder.store_lat, activeMapOrder.store_lng);
-      const custPoint = L.latLng(activeMapOrder.lat, activeMapOrder.lng);
-      
-      if (activeMapOrder.status === 'delivering' && L.Routing) {
-        window.routingControl = L.Routing.control({
-          waypoints: [storePoint, custPoint], addWaypoints: false, routeWhileDragging: false, show: false, createMarker: () => null, lineOptions: { styles: [{color: '#3b82f6', weight: 5}] }
-        }).addTo(window.myMap);
-      } else {
-        L.polyline([storePoint, custPoint], {color: '#f97316', weight: 3, dashArray: '5, 5'}).addTo(window.mapLayerGroup);
-        window.myMap.fitBounds([storePoint, custPoint], { padding: [20, 20] });
-      }
-      L.marker(storePoint).addTo(window.mapLayerGroup);
-      L.marker(custPoint).addTo(window.mapLayerGroup);
+      renderMap(activeMapOrder);
     } else {
       document.getElementById('map-wrapper').classList.add('hidden');
     }
   }
 
+  // History Orders
   if (historyOrders.length === 0) {
     containerHistory.innerHTML = '<p class="text-center text-gray-500 py-8 text-sm">Chưa có lịch sử giao dịch.</p>';
   } else {
@@ -300,26 +461,74 @@ function renderCustomerOrders(orders) {
   }
 }
 
+// ===== MAP =====
+function renderMap(order) {
+  document.getElementById('map-wrapper').classList.remove('hidden');
+
+  if (!window.myMap) {
+    window.myMap = L.map('map', { zoomControl: false }).setView([10.845, 106.794], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(window.myMap);
+    window.mapLayerGroup = L.layerGroup().addTo(window.myMap);
+  }
+
+  window.mapLayerGroup.clearLayers();
+  if (window.routingControl) {
+    window.myMap.removeControl(window.routingControl);
+    window.routingControl = null;
+  }
+
+  const storePoint = L.latLng(order.store_lat, order.store_lng);
+  const custPoint = L.latLng(order.lat, order.lng);
+
+  // Custom icons
+  const iconStore = L.divIcon({
+    className: '',
+    html: '<div style="background:#f97316;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:14px"><i class="fa-solid fa-store"></i></div>',
+    iconSize: [32, 32], iconAnchor: [16, 16]
+  });
+  const iconCust = L.divIcon({
+    className: '',
+    html: '<div style="background:#3b82f6;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);font-size:14px"><i class="fa-solid fa-house"></i></div>',
+    iconSize: [32, 32], iconAnchor: [16, 16]
+  });
+
+  if (order.status === 'delivering' && L.Routing) {
+    window.routingControl = L.Routing.control({
+      waypoints: [storePoint, custPoint],
+      addWaypoints: false, routeWhileDragging: false, show: false,
+      createMarker: () => null,
+      lineOptions: { styles: [{ color: '#10b981', weight: 5 }] }
+    }).addTo(window.myMap);
+  } else {
+    L.polyline([storePoint, custPoint], { color: '#f97316', weight: 3, dashArray: '5, 5' }).addTo(window.mapLayerGroup);
+    window.myMap.fitBounds([storePoint, custPoint], { padding: [30, 30] });
+  }
+
+  L.marker(storePoint, { icon: iconStore }).addTo(window.mapLayerGroup).bindPopup('Quán: ' + (order.pickup_address || ''));
+  L.marker(custPoint, { icon: iconCust }).addTo(window.mapLayerGroup).bindPopup('Giao đến: ' + (order.delivery_address || ''));
+
+  // Update map status text
+  const statusMap = {
+    preparing: { text: 'Quán đang nấu', sub: 'Tài xế sẽ đến lấy khi xong' },
+    delivering: { text: 'Đang giao hàng', sub: 'Tài xế đang trên đường tới bạn' }
+  };
+  const info = statusMap[order.status] || { text: 'Đang xử lý', sub: '' };
+  const mapInfo = document.querySelector('#map-wrapper .font-bold');
+  const mapSub = document.querySelector('#map-wrapper .text-xs');
+  if (mapInfo) mapInfo.textContent = info.text;
+  if (mapSub) mapSub.textContent = info.sub;
+}
+
+// ===== CANCEL ORDER =====
 async function cancelOrder(id) {
-  if(!confirm("Bạn chắc chắn muốn hủy?")) return;
+  if (!confirm("Bạn chắc chắn muốn hủy đơn hàng này?")) return;
   try {
     await apiCall(`/customer/orders/${id}/cancel`, 'PUT', null, 'customer');
+    alert('Hủy đơn thành công! Tiền đã được hoàn vào ví.');
     loadCustomerOrders();
-    loadProfile('customer');
+    loadProfileData(); // Update balance immediately
   } catch (err) { alert(err.message); }
 }
 
-// Intercept profile loading to save to local storage for header updating
-const originalLoadProfile = window.loadProfile;
-window.loadProfile = async function(role) {
-  await originalLoadProfile(role);
-  if(role === 'customer') {
-    try {
-      const res = await fetch(`${API_URL}/users/profile`, { headers: { 'Authorization': `Bearer ${tokens.customer}` } });
-      const data = await res.json();
-      localStorage.setItem('customerProfile', JSON.stringify(data.data));
-    } catch(e) {}
-  }
-}
-
+// ===== POLLING =====
 setInterval(refreshData, 3000);

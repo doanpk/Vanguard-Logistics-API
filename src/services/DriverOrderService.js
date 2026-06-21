@@ -67,6 +67,37 @@ class DriverOrderService {
     return pickupedOrder;
   }
 
+  static async arriveOrder(orderId, driverId) {
+    const order = await OrderModel.findById(orderId);
+    if (!order) {
+      const err = new Error("Order not found.");
+      err.status = 404;
+      throw err;
+    }
+
+    if (order.driver_id !== driverId) {
+      const err = new Error("You can only update your own orders.");
+      err.status = 403;
+      throw err;
+    }
+
+    if (!canTransition(order.status, "arrived")) {
+      const err = new Error(
+        `Cannot arrive at order. Current status '${order.status}' cannot transition to 'arrived'.`
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    const arrivedOrder = await OrderModel.arriveOrder(orderId, driverId);
+    if (!arrivedOrder) {
+      const err = new Error("Order cannot be arrived.");
+      err.status = 400;
+      throw err;
+    }
+    return arrivedOrder;
+  }
+
   // Bug 2 Fix: Verify driver owns the order before completing
   // Bug 4 Fix: State machine validation before transition
   static async completeOrder(orderId, driverId) {
