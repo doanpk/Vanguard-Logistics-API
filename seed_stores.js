@@ -25,7 +25,11 @@ async function seed() {
         continue;
       }
       
-      await dbPromise.run(`INSERT INTO Users (username, password_hash, role, address, category, is_open) VALUES (?, ?, 'store', ?, ?, 1)`, [s.user, hash, s.address, s.cat]);
+      // Generate random coordinates around UTC2 (10.845, 106.794)
+      const lat = 10.845 + (Math.random() * 0.01);
+      const lng = 106.794 + (Math.random() * 0.01);
+      
+      await dbPromise.run(`INSERT INTO Users (username, password_hash, role, address, category, is_open, lat, lng) VALUES (?, ?, 'store', ?, ?, 1, ?, ?)`, [s.user, hash, s.address, s.cat, lat, lng]);
       console.log('Inserted', s.user);
       
       const res = await dbPromise.get(`SELECT id FROM Users WHERE username = ?`, [s.user]);

@@ -153,6 +153,7 @@ async function fetchChatMessages() {
   if (!activeChatOrderId) return;
   try {
     const res = await apiCall(`/messages/${activeChatOrderId}`, 'GET', null, currentRole);
+    localStorage.setItem('chat_read_' + activeChatOrderId, res.data.length);
     renderChatMessages(res.data);
   } catch (err) {
     console.error('Lỗi lấy tin nhắn:', err);
@@ -167,7 +168,7 @@ function renderChatMessages(messages) {
   messages.forEach(m => {
     const isMe = m.sender_role === currentRole; // Simplified, assuming single login per role
     // Format time: HH:mm
-    const timeStr = new Date(m.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const timeStr = new Date(m.created_at + 'Z').toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     
     // Bubble color mapping based on role
     let bubbleColor = isMe ? 'bg-emerald-500 text-white' : 'bg-white border text-gray-800';
@@ -254,4 +255,23 @@ function showToast(message, icon = 'fa-bell', colorClass = 'bg-emerald-500') {
     toastContainer.classList.remove('translate-y-0', 'opacity-100');
     toastContainer.classList.add('-translate-y-20', 'opacity-0');
   }, 4000);
+}
+
+// Check new messages and show notifications
+function checkNewChatMessages(orders) {
+  if (!orders || !Array.isArray(orders)) return;
+  orders.forEach(o => {
+    const currentMsgCount = o.msg_count || 0;
+    const notifiedMsgCount = parseInt(localStorage.getItem('chat_notified_' + o.id) || 0);
+    
+    if (currentMsgCount > notifiedMsgCount && activeChatOrderId !== o.id) {
+      showToast('Tin nhắn mới từ đơn #' + o.id, 'fa-comment-dots', 'bg-blue-500');
+      const audio = document.getElementById('audio-ding');
+      if (audio) audio.play().catch(() => {});
+      localStorage.setItem('chat_notified_' + o.id, currentMsgCount);
+    } else if (activeChatOrderId === o.id) {
+      // If modal is open, silently update so it doesn't notify when closed later
+      localStorage.setItem('chat_notified_' + o.id, currentMsgCount);
+    }
+  });
 }

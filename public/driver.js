@@ -44,7 +44,7 @@ async function loadDriverData() {
     const resActive = await apiCall('/driver/my-orders', 'GET', null, 'driver');
     const myOrders = resActive.data;
     
-    const activeOrder = myOrders.find(o => ['preparing', 'delivering', 'arrived'].includes(o.status));
+    const activeOrder = myOrders.find(o => ['preparing', 'arrived_store', 'delivering', 'arrived'].includes(o.status));
     
     if (activeOrder) {
       document.getElementById('incoming-order-popup').classList.add('hidden');
@@ -64,7 +64,9 @@ async function loadDriverData() {
       }
     }
 
-    renderHistory(myOrders.filter(o => o.status === 'completed' || o.status === 'cancelled'));
+    if (typeof checkNewChatMessages === 'function') checkNewChatMessages(myOrders);
+
+    renderHistory(myOrders.filter(o => o.status === 'completed' || o.status === 'cancelled' || o.status === 'failed'));
   } catch (e) {}
 }
 
@@ -84,6 +86,7 @@ function renderActiveOrder(order) {
     <div class="mb-2 pb-2 border-b border-gray-600">
       <p class="text-xs text-gray-400">Món ăn:</p>
       <p class="font-semibold text-sm">${order.item_description}</p>
+      ${order.note ? `<p class="text-xs text-yellow-500 bg-yellow-900/50 p-1.5 rounded mt-1 border border-yellow-700/50">📝 Ghi chú: ${order.note}</p>` : ''}
     </div>
     <div class="flex flex-col space-y-1 text-sm text-gray-300">
       <p><i class="fa-solid fa-store w-5 text-orange-400"></i> ${order.store_name || 'Quán'} - ${order.store_phone || 'Không có SĐT'}</p>
@@ -91,15 +94,26 @@ function renderActiveOrder(order) {
     </div>
   `;
   document.getElementById('driver-chat-btn').onclick = () => openChat(order.id);
-  
+  const unreadCount = (order.msg_count || 0) - parseInt(localStorage.getItem('chat_read_' + order.id) || 0);
+  const unreadDot = unreadCount > 0 ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full animate-bounce shadow">${unreadCount}</span>` : '';
+  const chatBtnHTML = `<button onclick="openChat(${order.id})" class="relative w-1/3 bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-600"><i class="fa-solid fa-comment-dots"></i> Chat${unreadDot}</button>`;
+
   const statusText = document.getElementById('active-status-text');
   const btnContainer = document.getElementById('active-action-btn-container');
   
   if (order.status === 'preparing') {
-    statusText.textContent = "Đang đến lấy hàng";
+    statusText.textContent = "Đang đến quán";
     btnContainer.innerHTML = `
       <div class="flex space-x-2">
-        <button onclick="openChat(${order.id})" class="w-1/3 bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-600"><i class="fa-solid fa-comment-dots"></i> Chat</button>
+        ${chatBtnHTML}
+        <button onclick="arriveStoreOrder(${order.id})" class="w-2/3 bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-orange-500/30 text-lg hover:bg-orange-600">Đã đến quán</button>
+      </div>
+    `;
+  } else if (order.status === 'arrived_store') {
+    statusText.textContent = "Đang chờ món tại quán";
+    btnContainer.innerHTML = `
+      <div class="flex space-x-2">
+        ${chatBtnHTML}
         <button onclick="pickupOrder(${order.id})" class="w-2/3 bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-orange-500/30 text-lg hover:bg-orange-600">Đã lấy hàng</button>
       </div>
     `;
@@ -107,17 +121,20 @@ function renderActiveOrder(order) {
     statusText.textContent = "Đang giao cho khách";
     btnContainer.innerHTML = `
       <div class="flex space-x-2">
-        <button onclick="openChat(${order.id})" class="w-1/3 bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-600"><i class="fa-solid fa-comment-dots"></i> Chat</button>
+        ${chatBtnHTML}
         <button onclick="arriveOrder(${order.id})" class="w-2/3 bg-purple-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-purple-500/30 text-lg hover:bg-purple-600">Đã đến nơi</button>
       </div>
+      <button onclick="failOrder(${order.id})" class="w-full mt-3 bg-red-500/10 text-red-400 font-bold py-2 rounded-xl border border-red-500/30 hover:bg-red-500 hover:text-white transition text-sm">Báo cáo Bom Hàng</button>
     `;
   } else if (order.status === 'arrived') {
     statusText.textContent = "Đã đến điểm giao";
     btnContainer.innerHTML = `
       <div class="flex space-x-2">
-        <button onclick="openChat(${order.id})" class="w-1/3 bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-600"><i class="fa-solid fa-comment-dots"></i> Chat</button>
+        ${chatBtnHTML}
         <button onclick="completeOrder(${order.id})" class="w-2/3 bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-500/30 text-lg hover:bg-emerald-600">Giao xong</button>
       </div>
+
+      <button onclick="failOrder(${order.id})" class="w-full mt-3 bg-red-500/10 text-red-400 font-bold py-2 rounded-xl border border-red-500/30 hover:bg-red-500 hover:text-white transition text-sm">Báo cáo Bom Hàng</button>
     `;
   }
 
@@ -159,7 +176,7 @@ function renderHistory(orders) {
   let todayIncome = 0;
   let todayCount = 0;
   orders.forEach(o => {
-    if(o.status === 'completed') {
+    if(o.status === 'completed' || o.status === 'failed') {
       todayIncome += (o.delivery_fee || 15000);
       todayCount++;
     }
@@ -175,20 +192,42 @@ function renderHistory(orders) {
     container.innerHTML = '<p class="text-gray-500 text-center py-4 text-sm">Chưa có chuyến xe nào.</p>';
     return;
   }
-  container.innerHTML = orders.map(o => `
+  container.innerHTML = orders.map(o => {
+    let chatBtn = '';
+    if (o.status === 'completed') {
+      const timeRef = o.updated_at || o.created_at;
+      if (timeRef) {
+        const diffMs = Date.now() - new Date(timeRef + 'Z').getTime();
+        if (diffMs / 1000 / 60 <= 30) {
+          const unreadCount = (o.msg_count || 0) - parseInt(localStorage.getItem('chat_read_' + o.id) || 0);
+          const unreadDot = unreadCount > 0 ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full animate-bounce">${unreadCount}</span>` : '';
+          chatBtn = `<button onclick="openChat(${o.id})" class="relative mt-2 text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-500/20 text-xs w-full"><i class="fa-solid fa-comment-dots mr-1"></i>Chat với khách${unreadDot}</button>`;
+        }
+      }
+    }
+
+    return `
     <div class="bg-gray-800 p-4 rounded-xl border border-gray-700">
       <div class="flex justify-between mb-2">
-        <span class="font-bold text-sm text-gray-300">Đơn #${o.id}</span>
-        <span class="${o.status === 'completed' ? 'text-emerald-400' : 'text-red-400'} text-sm font-bold">${o.status === 'completed' ? '+'+(o.delivery_fee||15000).toLocaleString()+'đ' : 'Hủy'}</span>
+        <span class="font-bold text-sm text-gray-300">Đơn #${o.id} ${o.status === 'failed' ? '<span class="bg-red-500 text-white text-[10px] px-1 rounded ml-1">BOM</span>' : ''}</span>
+        <span class="${(o.status === 'completed' || o.status === 'failed') ? 'text-emerald-400' : 'text-red-400'} text-sm font-bold">${(o.status === 'completed' || o.status === 'failed') ? '+'+(o.delivery_fee||15000).toLocaleString()+'đ' : 'Hủy'}</span>
       </div>
       <p class="text-xs text-gray-400 truncate"><i class="fa-solid fa-arrow-right text-gray-600 w-4"></i> ${o.delivery_address}</p>
+      ${chatBtn}
     </div>
-  `).join('');
+  `}).join('');
 }
 
 async function acceptOrder(id) {
   try {
     await apiCall(`/driver/orders/${id}/accept`, 'PUT', null, 'driver');
+    loadDriverData();
+  } catch (err) { alert(err.message); }
+}
+
+async function arriveStoreOrder(id) {
+  try {
+    await apiCall(`/driver/orders/${id}/arrive_store`, 'PUT', null, 'driver');
     loadDriverData();
   } catch (err) { alert(err.message); }
 }
@@ -213,6 +252,18 @@ async function completeOrder(id) {
     loadDriverData();
     loadProfile('driver');
   } catch (err) { alert(err.message); }
+}
+
+async function failOrder(id) {
+  const reason = prompt("Nhập lý do bom hàng (VD: Khách gọi không nghe máy):");
+  if (reason) {
+    try {
+      await apiCall(`/driver/orders/${id}/fail`, 'PUT', { reason }, 'driver');
+      alert('Đã báo cáo bom hàng thành công! Bạn vẫn nhận được phí vận chuyển.');
+      loadDriverData();
+      loadProfile('driver');
+    } catch (err) { alert(err.message); }
+  }
 }
 
 function initChart() {

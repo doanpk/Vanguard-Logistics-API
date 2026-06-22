@@ -46,3 +46,30 @@ Error: Invalid status transition from 'delivering' to 'cancelled'.
 Error: Invalid status transition from 'delivering' to 'cancelled'.
     at OrderService.updateOrderStatus (D:\API\BTL\src\services\OrderService.js:50:19)
     at async updateOrderStatus (D:\API\BTL\src\controllers\OrderController.js:36:28)
+[2026-06-23 00:33:09] ERROR: Hệ thống không thể định vị được địa chỉ này trên bản đồ. Vui lòng bấm nút lấy vị trí GPS hoặc ghi rõ (Tên đường, Phường, Quận, Thành Phố). 
+Error: Hệ thống không thể định vị được địa chỉ này trên bản đồ. Vui lòng bấm nút lấy vị trí GPS hoặc ghi rõ (Tên đường, Phường, Quận, Thành Phố).
+    at CustomerOrderService.createOrder (D:\API\BTL\src\services\CustomerOrderService.js:85:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async createOrder (D:\API\BTL\src\controllers\CustomerOrderController.js:52:24)
+[2026-06-23 00:55:37] ERROR: SQLITE_ERROR: near "'finding_driver'": syntax error 
+Error: SQLITE_ERROR: near "'finding_driver'": syntax error
+[2026-06-23 00:55:47] ERROR: SQLITE_ERROR: near "'finding_driver'": syntax error 
+Error: SQLITE_ERROR: near "'finding_driver'": syntax error
+[2026-06-23 00:57:31] ERROR: SQLITE_ERROR: no such column: updated_at 
+Error: SQLITE_ERROR: no such column: updated_at
+[2026-06-23 00:57:33] ERROR: SQLITE_ERROR: no such column: updated_at 
+Error: SQLITE_ERROR: no such column: updated_at
+[2026-06-23 00:58:30] ERROR: SQLITE_ERROR: no such column: updated_at 
+Error: SQLITE_ERROR: no such column: updated_at
+[2026-06-23 00:58:34] ERROR: SQLITE_ERROR: no such column: updated_at 
+Error: SQLITE_ERROR: no such column: updated_at
+[2026-06-23 01:54:27] ERROR: Hệ thống không thể định vị được địa chỉ này trên bản đồ. Vui lòng bấm nút lấy vị trí GPS hoặc ghi rõ (Tên đường, Phường, Quận, Thành Phố). 
+Error: Hệ thống không thể định vị được địa chỉ này trên bản đồ. Vui lòng bấm nút lấy vị trí GPS hoặc ghi rõ (Tên đường, Phường, Quận, Thành Phố).
+    at CustomerOrderService.createOrder (D:\API\BTL\src\services\CustomerOrderService.js:114:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async createOrder (D:\API\BTL\src\controllers\CustomerOrderController.js:52:24)
+[2026-06-23 01:55:01] ERROR: Hệ thống không thể định vị được địa chỉ này trên bản đồ. Vui lòng bấm nút lấy vị trí GPS hoặc ghi rõ (Tên đường, Phường, Quận, Thành Phố). 
+Error: Hệ thống không thể định vị được địa chỉ này trên bản đồ. Vui lòng bấm nút lấy vị trí GPS hoặc ghi rõ (Tên đường, Phường, Quận, Thành Phố).
+    at CustomerOrderService.createOrder (D:\API\BTL\src\services\CustomerOrderService.js:114:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async createOrder (D:\API\BTL\src\controllers\CustomerOrderController.js:52:24)

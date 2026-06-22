@@ -28,20 +28,37 @@
   <div class="mobile-container">
     
     <!-- Auth Section -->
-    <div id="auth-section" class="p-6 h-screen flex flex-col justify-center bg-gray-900">
-      <div class="text-center mb-8">
-        <div class="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-motorcycle text-4xl text-white"></i></div>
-        <h1 class="text-2xl font-bold text-white">GrabDriver Clone</h1>
-        <p class="text-gray-400 text-sm">Cộng tác viên giao hàng</p>
+    <div id="auth-section" class="relative p-6 h-screen flex flex-col justify-center overflow-hidden" style="background: linear-gradient(-45deg, #111827, #1f2937, #10b981, #064e3b); background-size: 400% 400%; animation: gradient 15s ease infinite;">
+      <style>
+        @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+      </style>
+      <div class="relative z-10 bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 p-8 rounded-3xl shadow-2xl">
+        <div class="text-center mb-8">
+          <div class="w-20 h-20 bg-gradient-to-tr from-emerald-500 to-emerald-700 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/30 mb-4 transform -rotate-3 hover:rotate-0 transition-transform">
+            <i class="fa-solid fa-motorcycle text-4xl text-white"></i>
+          </div>
+          <h1 class="text-3xl font-extrabold text-white">Driver Portal</h1>
+          <p class="text-emerald-400 font-semibold mt-1 text-sm">Đối tác giao hàng</p>
+        </div>
+        <div class="space-y-5">
+          <div class="relative">
+            <i class="fa-solid fa-user absolute left-4 top-3.5 text-gray-400"></i>
+            <input type="text" id="drv-user" placeholder="Tài khoản (VD: tx1)" value="tx1" class="w-full pl-11 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all focus:shadow-md">
+          </div>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-4 top-3.5 text-gray-400"></i>
+            <input type="password" id="drv-pass" placeholder="Mật khẩu" value="123456" class="w-full pl-11 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-white transition-all focus:shadow-md">
+          </div>
+          <button onclick="login('driver')" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-emerald-500/50 transform transition hover:-translate-y-1">Đăng Nhập</button>
+          <div class="flex items-center justify-center space-x-2 mt-4 text-sm text-gray-400">
+            <span>Chưa có tài khoản?</span>
+            <button onclick="window.location.href='register.html'" class="text-emerald-400 font-bold hover:underline">Đăng ký ngay</button>
+          </div>
+        </div>
       </div>
-      <div class="space-y-4">
-        <input type="text" id="drv-user" placeholder="Tài khoản (VD: tx1)" value="tx1" class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-white">
-        <input type="password" id="drv-pass" placeholder="Mật khẩu" value="123456" class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-white">
-        <input type="text" id="drv-phone" placeholder="Số điện thoại (Khi đăng ký mới)" class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-white">
-        <input type="text" id="drv-vehicle" placeholder="Biển số xe & Loại xe (Khi đăng ký)" class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-white">
-        <button onclick="login('driver')" class="w-full bg-emerald-500 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-emerald-600 transition">Đăng Nhập</button>
-        <button onclick="register('driver')" class="w-full bg-gray-700 text-gray-300 font-bold py-3 rounded-lg hover:bg-gray-600 transition border border-gray-600">Đăng Ký Tài Xế Mới</button>
-      </div>
+      <!-- Decorative circles -->
+      <div class="absolute top-10 left-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
+      <div class="absolute bottom-10 right-10 w-40 h-40 bg-gray-500/10 rounded-full blur-2xl"></div>
     </div>
 
     <!-- Main Content -->

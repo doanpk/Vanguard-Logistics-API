@@ -20,12 +20,12 @@ class OrderModel {
     return await DBQuery.get(query, [id]);
   }
 
-  static async create(customerId, storeId, pickupAddress, deliveryAddress, itemDescription, totalPrice, deliveryFee, lat, lng) {
+  static async create(customerId, storeId, pickupAddress, deliveryAddress, itemDescription, totalPrice, deliveryFee, lat, lng, note) {
     const query = `
-      INSERT INTO Orders (customer_id, store_id, pickup_address, delivery_address, item_description, status, total_price, delivery_fee, lat, lng)
-      VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)
+      INSERT INTO Orders (customer_id, store_id, pickup_address, delivery_address, item_description, status, total_price, delivery_fee, lat, lng, note)
+      VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)
     `;
-    const params = [customerId, storeId, pickupAddress, deliveryAddress, itemDescription, totalPrice, deliveryFee, lat, lng];
+    const params = [customerId, storeId, pickupAddress, deliveryAddress, itemDescription, totalPrice, deliveryFee, lat, lng, note];
     const result = await DBQuery.run(query, params);
     return await this.findById(result.lastID);
   }
@@ -33,7 +33,7 @@ class OrderModel {
   static async updateStatus(id, status) {
     const query = `
       UPDATE Orders 
-      SET status = ? 
+      SET status = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE id = ?
     `;
     const result = await DBQuery.run(query, [status, id]);
@@ -44,6 +44,7 @@ class OrderModel {
   static async findByCustomerId(customerId) {
     const query = `
       SELECT Orders.*, 
+             (SELECT COUNT(*) FROM OrderMessages WHERE order_id = Orders.id) AS msg_count,
              StoreUser.lat AS store_lat, StoreUser.lng AS store_lng, StoreUser.username AS store_name, StoreUser.phone_number AS store_phone,
              DriverUser.full_name AS driver_name, DriverUser.phone_number AS driver_phone, DriverUser.vehicle_info AS driver_vehicle
       FROM Orders 
@@ -82,7 +83,7 @@ class OrderModel {
   static async storeAcceptOrder(id, storeId) {
     const query = `
       UPDATE Orders 
-      SET status = 'finding_driver' 
+      SET status = 'finding_driver', updated_at = CURRENT_TIMESTAMP 
       WHERE id = ? AND store_id = ? AND status = 'pending'
     `;
     const result = await DBQuery.run(query, [id, storeId]);
@@ -94,7 +95,7 @@ class OrderModel {
   static async acceptOrder(id, driverId) {
     const query = `
       UPDATE Orders 
-      SET status = 'preparing', driver_id = ? 
+      SET status = 'preparing', driver_id = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE id = ? AND status = 'finding_driver' AND driver_id IS NULL
     `;
     const result = await DBQuery.run(query, [driverId, id]);
@@ -102,11 +103,22 @@ class OrderModel {
     return await this.findById(id);
   }
 
+  static async arriveStoreOrder(id, driverId) {
+    const query = `
+      UPDATE Orders 
+      SET status = 'arrived_store', updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ? AND driver_id = ? AND status = 'preparing'
+    `;
+    const result = await DBQuery.run(query, [id, driverId]);
+    if (result.changes === 0) return null;
+    return await this.findById(id);
+  }
+
   static async pickupOrder(id, driverId) {
     const query = `
       UPDATE Orders 
-      SET status = 'delivering' 
-      WHERE id = ? AND driver_id = ? AND status = 'preparing'
+      SET status = 'delivering', updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ? AND driver_id = ? AND status = 'arrived_store'
     `;
     const result = await DBQuery.run(query, [id, driverId]);
     if (result.changes === 0) return null;
@@ -116,7 +128,7 @@ class OrderModel {
   static async arriveOrder(id, driverId) {
     const query = `
       UPDATE Orders 
-      SET status = 'arrived' 
+      SET status = 'arrived', updated_at = CURRENT_TIMESTAMP 
       WHERE id = ? AND driver_id = ? AND status = 'delivering'
     `;
     const result = await DBQuery.run(query, [id, driverId]);
@@ -128,10 +140,22 @@ class OrderModel {
   static async completeOrder(id, driverId) {
     const query = `
       UPDATE Orders 
-      SET status = 'completed' 
+      SET status = 'completed', updated_at = CURRENT_TIMESTAMP 
       WHERE id = ? AND driver_id = ? AND status = 'arrived'
     `;
     const result = await DBQuery.run(query, [id, driverId]);
+    if (result.changes === 0) return null;
+    return await this.findById(id);
+  }
+
+  // Feature: Driver marks order as failed (bom hàng)
+  static async failOrder(id, driverId, currentStatus) {
+    const query = `
+      UPDATE Orders 
+      SET status = 'failed', updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ? AND driver_id = ? AND status = ?
+    `;
+    const result = await DBQuery.run(query, [id, driverId, currentStatus]);
     if (result.changes === 0) return null;
     return await this.findById(id);
   }
@@ -140,7 +164,7 @@ class OrderModel {
   static async cancelOrder(id, customerId) {
     const query = `
       UPDATE Orders 
-      SET status = 'cancelled' 
+      SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP 
       WHERE id = ? AND customer_id = ? AND status = 'pending'
     `;
     const result = await DBQuery.run(query, [id, customerId]);
@@ -152,7 +176,7 @@ class OrderModel {
   static async cancelOrderExpanded(id, customerId, currentStatus) {
     const query = `
       UPDATE Orders 
-      SET status = 'cancelled' 
+      SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP 
       WHERE id = ? AND customer_id = ? AND status = ?
     `;
     const result = await DBQuery.run(query, [id, customerId, currentStatus]);
@@ -164,7 +188,7 @@ class OrderModel {
   static async storeRejectOrder(id, storeId, currentStatus) {
     const query = `
       UPDATE Orders 
-      SET status = 'cancelled' 
+      SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP 
       WHERE id = ? AND store_id = ? AND status = ?
     `;
     const result = await DBQuery.run(query, [id, storeId, currentStatus]);
@@ -175,6 +199,7 @@ class OrderModel {
   static async findByDriverId(driverId) {
     const query = `
       SELECT Orders.*, 
+             (SELECT COUNT(*) FROM OrderMessages WHERE order_id = Orders.id) AS msg_count,
              StoreUser.lat AS store_lat, StoreUser.lng AS store_lng, StoreUser.username AS store_name, StoreUser.phone_number AS store_phone,
              CustomerUser.full_name AS customer_name, CustomerUser.phone_number AS customer_phone
       FROM Orders 

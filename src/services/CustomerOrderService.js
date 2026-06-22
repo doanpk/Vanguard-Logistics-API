@@ -16,19 +16,48 @@ class CustomerOrderService {
 
     try {
       // Using OpenStreetMap Nominatim API (Free, no auth required)
-      const encodedAddress = encodeURIComponent(address);
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}`;
+      let encodedAddress = encodeURIComponent(address);
+      let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}`;
       
-      const response = await fetch(url, {
+      let response = await fetch(url, {
         headers: { "User-Agent": "DeliveryApp-BTL/1.0" } // Nominatim requires User-Agent
       });
-      const data = await response.json();
+      let data = await response.json();
       
       if (data && data.length > 0) {
         return {
           lat: parseFloat(data[0].lat),
           lng: parseFloat(data[0].lon)
         };
+      }
+
+      // AI-Assisted Fallback
+      if (!data || data.length === 0) {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (apiKey) {
+          logger.info(`Nominatim failed for '${address}'. Activating AI Fallback...`);
+          const { GoogleGenerativeAI } = require("@google/generative-ai");
+          const genAI = new GoogleGenerativeAI(apiKey);
+          const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+          
+          const systemPrompt = `You are a strict address normalizer for Vietnam. The user will provide a messy address. Your job is to extract and format it into a clean, official administrative address (House number, Street, Ward, District, City) that a map API like OpenStreetMap can easily find. Do not invent details. Ignore slang, nearby landmarks ("gần quán", "cạnh chùa"), or instructions. Return ONLY the clean address string. If you cannot extract a valid address, return the string "UNKNOWN".`;
+          
+          const result = await model.generateContent([systemPrompt, address]);
+          const cleanAddress = result.response.text().trim();
+          
+          if (cleanAddress !== "UNKNOWN" && cleanAddress.length > 5) {
+            logger.info(`AI normalized address to: '${cleanAddress}'`);
+            encodedAddress = encodeURIComponent(cleanAddress);
+            url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}`;
+            response = await fetch(url, { headers: { "User-Agent": "DeliveryApp-BTL/1.0" } });
+            data = await response.json();
+            
+            if (data && data.length > 0) {
+              logger.info(`AI Fallback successful for '${cleanAddress}'`);
+              return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+            }
+          }
+        }
       }
     } catch (error) {
       logger.error(`Geocoding failed: ${error.message}`);
@@ -38,7 +67,7 @@ class CustomerOrderService {
   }
 
   static async createOrder(customerId, data) {
-    const { storeId, items, deliveryAddress } = data;
+    const { storeId, items, deliveryAddress, note } = data;
     if (!storeId || !deliveryAddress || !items || items.length === 0) {
       const err = new Error("Store ID, items, and delivery address are required.");
       err.status = 400;
@@ -57,18 +86,35 @@ class CustomerOrderService {
     const pickupAddress = store.address || "Store Address Not Set";
     
     // Calculate total price and generate item description
+    // Fix: Không tin tưởng giá trị price từ Client, lấy giá gốc từ Database
+    const menuItems = await StoreModel.getMenuItems(storeId);
     let totalPrice = 0;
     let descParts = [];
     for (let item of items) {
       const qty = item.qty || 1;
-      const price = item.price || 0;
-      totalPrice += qty * price;
-      descParts.push(`${qty}x ${item.name}`);
+      
+      // Khớp món ăn dựa trên id hoặc name
+      const dbItem = menuItems.find(m => m.id === item.id || m.name === item.name);
+      if (!dbItem) {
+        const err = new Error(`Món ăn '${item.name}' không tồn tại trong menu của quán.`);
+        err.status = 400;
+        throw err;
+      }
+
+      const actualPrice = dbItem.price;
+      totalPrice += qty * actualPrice;
+      descParts.push(`${qty}x ${dbItem.name}`);
     }
     const itemDescription = descParts.join(", ");
     
     // Call Cloud API to get coordinates
     const { lat, lng } = await this.geocodeAddress(deliveryAddress);
+
+    if (lat === null || lng === null) {
+      const err = new Error("Hệ thống không thể định vị được địa chỉ này trên bản đồ. Vui lòng bấm nút lấy vị trí GPS hoặc ghi rõ (Tên đường, Phường, Quận, Thành Phố).");
+      err.status = 400;
+      throw err;
+    }
 
     // Dynamic Pricing Logic
     const { calculateDeliveryFee } = require("../utils/distance");
@@ -108,7 +154,8 @@ class CustomerOrderService {
       totalPrice,
       deliveryFee,
       lat,
-      lng
+      lng,
+      note
     );
   }
 
@@ -203,13 +250,22 @@ class CustomerOrderService {
         // Full refund
         await UserModel.updateBalance(customerId, totalCost);
       } else if (order.status === 'preparing') {
-        // 80% refund (20% penalty for quán đã nấu)
-        const penalty = Math.round(totalCost * 0.2);
-        const refund = totalCost - penalty;
+        // Fix Lỗi 2: Chia lại đền bù - Khách nhận 70%, Quán 20%, Driver 10%
+        // (Vì tài xế đã được gán và có thể đang chạy tới quán)
+        const storePenalty = Math.round(totalCost * 0.2);
+        const driverPenalty = Math.round(totalCost * 0.1);
+        const refund = totalCost - storePenalty - driverPenalty;
+        
         await UserModel.updateBalance(customerId, refund);
-        // Cộng penalty cho quán
+        
+        // Cộng tiền đền bù cho quán (đã chuẩn bị nguyên liệu)
         if (order.store_id) {
-          await UserModel.updateBalance(order.store_id, penalty);
+          await UserModel.updateBalance(order.store_id, storePenalty);
+        }
+        
+        // Cộng tiền đền bù xăng xe cho tài xế
+        if (order.driver_id) {
+          await UserModel.updateBalance(order.driver_id, driverPenalty);
         }
       }
     }

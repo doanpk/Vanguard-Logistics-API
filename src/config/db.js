@@ -59,7 +59,9 @@ function initDB() {
         delivery_fee REAL,
         lat REAL,
         lng REAL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        note TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -95,6 +97,8 @@ function initDB() {
     db.run(`ALTER TABLE Orders ADD COLUMN delivery_fee REAL`, (err) => { /* ignore if exists */ });
     db.run(`ALTER TABLE Orders ADD COLUMN lat REAL`, (err) => { /* ignore if exists */ });
     db.run(`ALTER TABLE Orders ADD COLUMN lng REAL`, (err) => { /* ignore if exists */ });
+    db.run(`ALTER TABLE Orders ADD COLUMN note TEXT`, (err) => { /* ignore if exists */ });
+    db.run(`ALTER TABLE Orders ADD COLUMN updated_at DATETIME`, (err) => { /* ignore if exists */ });
 
     // Auto-fill missing data for old accounts
     db.run(`UPDATE Users SET phone_number = '0901234567' WHERE phone_number IS NULL OR phone_number = ''`);

@@ -10,22 +10,37 @@
 <body class="bg-gray-100 text-gray-800 font-sans">
   
   <!-- Auth Section -->
-  <div id="auth-section" class="flex h-screen items-center justify-center bg-gray-50">
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+  <div id="auth-section" class="relative flex h-screen items-center justify-center overflow-hidden" style="background: linear-gradient(-45deg, #f97316, #ea580c, #fdba74, #c2410c); background-size: 400% 400%; animation: gradient 15s ease infinite;">
+    <style>
+      @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    </style>
+    <div class="relative z-10 bg-white/90 backdrop-blur-xl border border-white/40 p-8 rounded-3xl shadow-2xl w-full max-w-md mx-4">
       <div class="text-center mb-8">
-        <div class="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-store text-3xl text-white"></i></div>
-        <h1 class="text-2xl font-bold">GrabMerchant</h1>
-        <p class="text-gray-500 text-sm">Quản lý nhà hàng của bạn</p>
+        <div class="w-20 h-20 bg-gradient-to-tr from-orange-400 to-orange-600 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-orange-500/30 mb-4 transform -rotate-3 hover:rotate-0 transition-transform">
+          <i class="fa-solid fa-store text-4xl text-white"></i>
+        </div>
+        <h1 class="text-3xl font-extrabold text-gray-800">Merchant Portal</h1>
+        <p class="text-orange-600 font-semibold mt-1 text-sm">Quản lý nhà hàng của bạn</p>
       </div>
-      <div class="space-y-4">
-        <input type="text" id="store-user" placeholder="Tài khoản (VD: hungky)" value="hungky" class="w-full p-3 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
-        <input type="password" id="store-pass" placeholder="Mật khẩu" value="123456" class="w-full p-3 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
-        <input type="text" id="store-address" placeholder="Địa chỉ quán (Khi đăng ký)" class="w-full p-3 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
-        <input type="text" id="store-phone" placeholder="Số điện thoại (Khi đăng ký)" class="w-full p-3 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
-        <button onclick="login('store')" class="w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-orange-600 transition">Đăng Nhập Quán</button>
-        <button onclick="register('store')" class="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300 transition">Đăng Ký Quán Mới</button>
+      <div class="space-y-5">
+        <div class="relative">
+          <i class="fa-solid fa-user absolute left-4 top-3.5 text-gray-400"></i>
+          <input type="text" id="store-user" placeholder="Tài khoản (VD: hungky)" value="hungky" class="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all focus:shadow-md">
+        </div>
+        <div class="relative">
+          <i class="fa-solid fa-lock absolute left-4 top-3.5 text-gray-400"></i>
+          <input type="password" id="store-pass" placeholder="Mật khẩu" value="123456" class="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all focus:shadow-md">
+        </div>
+        <button onclick="login('store')" class="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-orange-500/50 transform transition hover:-translate-y-1">Đăng Nhập Quán</button>
+        <div class="flex items-center justify-center space-x-2 mt-4 text-sm text-gray-500">
+          <span>Chưa có tài khoản?</span>
+          <button onclick="window.location.href='register.html'" class="text-orange-600 font-bold hover:underline">Đăng ký quán mới</button>
+        </div>
       </div>
     </div>
+    <!-- Decorative circles -->
+    <div class="absolute top-10 left-10 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
+    <div class="absolute bottom-10 right-10 w-40 h-40 bg-orange-900/20 rounded-full blur-2xl"></div>
   </div>
 
   <!-- Main Content -->
@@ -45,6 +60,7 @@
         <div onclick="switchTab('dashboard', this)" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-orange-50 hover:text-orange-600 cursor-pointer transition"><i class="fa-solid fa-chart-pie w-5"></i><span class="font-semibold">Tổng quan</span></div>
         <div onclick="switchTab('orders', this)" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl bg-orange-50 text-orange-600 cursor-pointer transition"><i class="fa-solid fa-bell-concierge w-5"></i><span class="font-semibold">Live Orders</span><span id="new-badge" class="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full hidden">Mới</span></div>
         <div onclick="switchTab('menu', this)" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-orange-50 hover:text-orange-600 cursor-pointer transition"><i class="fa-solid fa-book-open w-5"></i><span class="font-semibold">Thực đơn</span></div>
+        <div onclick="switchTab('history', this)" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-orange-50 hover:text-orange-600 cursor-pointer transition"><i class="fa-solid fa-clock-rotate-left w-5"></i><span class="font-semibold">Lịch sử</span></div>
         <div onclick="switchTab('reviews', this)" class="nav-item flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-orange-50 hover:text-orange-600 cursor-pointer transition"><i class="fa-solid fa-star w-5"></i><span class="font-semibold">Đánh giá</span></div>
       </nav>
       <div class="p-4 border-t">
@@ -121,6 +137,12 @@
             </tbody>
           </table>
         </div>
+      </div>
+
+      <!-- TAB: HISTORY -->
+      <div id="tab-history" class="tab-pane hidden">
+        <h1 class="text-2xl font-bold mb-6">Lịch sử đơn hàng</h1>
+        <div id="store-history-list" class="space-y-4"></div>
       </div>
 
       <!-- TAB: REVIEWS (Mock) -->

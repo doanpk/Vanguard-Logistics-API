@@ -22,6 +22,17 @@ class DriverOrderController {
     }
   }
 
+  static async arriveStore(req, res, next) {
+    try {
+      const driverId = req.user.id;
+      const { id } = req.params;
+      const order = await DriverOrderService.arriveStoreOrder(id, driverId);
+      return success(res, order, "Driver arrived at store successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async pickupOrder(req, res, next) {
     try {
       const driverId = req.user.id;
@@ -50,6 +61,18 @@ class DriverOrderController {
       const { id } = req.params;
       const order = await DriverOrderService.completeOrder(id, driverId);
       return success(res, order, "Order completed successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async failOrder(req, res, next) {
+    try {
+      const driverId = req.user.id;
+      const { id } = req.params;
+      const { reason } = req.body;
+      const order = await DriverOrderService.failOrder(id, driverId, reason);
+      return success(res, order, "Order marked as failed (bom hàng) successfully");
     } catch (err) {
       next(err);
     }

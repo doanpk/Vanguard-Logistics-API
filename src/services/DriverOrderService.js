@@ -36,6 +36,37 @@ class DriverOrderService {
     return acceptedOrder;
   }
 
+  static async arriveStoreOrder(orderId, driverId) {
+    const order = await OrderModel.findById(orderId);
+    if (!order) {
+      const err = new Error("Order not found.");
+      err.status = 404;
+      throw err;
+    }
+
+    if (order.driver_id !== driverId) {
+      const err = new Error("You can only update your own orders.");
+      err.status = 403;
+      throw err;
+    }
+
+    if (!canTransition(order.status, "arrived_store")) {
+      const err = new Error(
+        `Cannot arrive at store. Current status '${order.status}' cannot transition to 'arrived_store'.`
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    const arrivedOrder = await OrderModel.arriveStoreOrder(orderId, driverId);
+    if (!arrivedOrder) {
+      const err = new Error("Order cannot be updated to arrived_store.");
+      err.status = 400;
+      throw err;
+    }
+    return arrivedOrder;
+  }
+
   static async pickupOrder(orderId, driverId) {
     const order = await OrderModel.findById(orderId);
     if (!order) {
@@ -141,6 +172,57 @@ class DriverOrderService {
     }
 
     return completedOrder;
+  }
+
+  // Feature: Bom Hàng (Fail Order)
+  static async failOrder(orderId, driverId, reason) {
+    const order = await OrderModel.findById(orderId);
+    if (!order) {
+      const err = new Error("Order not found.");
+      err.status = 404;
+      throw err;
+    }
+
+    if (order.driver_id !== driverId) {
+      const err = new Error("You can only fail your own orders.");
+      err.status = 403;
+      throw err;
+    }
+
+    if (!canTransition(order.status, "failed")) {
+      const err = new Error(
+        `Cannot mark as failed. Current status '${order.status}' cannot transition to 'failed'.`
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    const failedOrder = await OrderModel.failOrder(orderId, driverId, order.status);
+    if (!failedOrder) {
+      const err = new Error("Order not found or cannot be marked as failed by you.");
+      err.status = 400;
+      throw err;
+    }
+
+    // WALLET LOGIC FOR BOM HÀNG:
+    // Tiền của Khách đã bị trừ 100% lúc tạo đơn. Do Khách bom hàng, hệ thống thu 100%.
+    // Trả tiền món ăn cho Quán (vì Quán đã làm đồ).
+    // Trả tiền ship cho Tài xế (vì Tài xế đã chạy).
+    const UserModel = require("../models/UserModel");
+    if (order.store_id && order.total_price) {
+      await UserModel.updateBalance(order.store_id, order.total_price);
+    }
+    if (order.delivery_fee) {
+      await UserModel.updateBalance(driverId, order.delivery_fee);
+    }
+
+    // (Optional) Log the reason somewhere, e.g. adding a message to OrderMessages
+    if (reason) {
+      const MessageModel = require("../models/MessageModel");
+      await MessageModel.addMessage(orderId, driverId, "driver", `Hệ thống: Tài xế báo cáo Bom Hàng. Lý do: ${reason}`);
+    }
+
+    return failedOrder;
   }
 
   static async getDriverOrders(driverId) {

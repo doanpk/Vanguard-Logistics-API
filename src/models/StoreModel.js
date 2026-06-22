@@ -18,6 +18,7 @@ class StoreModel {
   static async getStoreOrders(storeId) {
     const query = `
       SELECT Orders.*, 
+             (SELECT COUNT(*) FROM OrderMessages WHERE order_id = Orders.id) AS msg_count,
              CustomerUser.full_name AS customer_name, CustomerUser.phone_number AS customer_phone,
              DriverUser.full_name AS driver_name, DriverUser.phone_number AS driver_phone, DriverUser.vehicle_info AS driver_vehicle
       FROM Orders 

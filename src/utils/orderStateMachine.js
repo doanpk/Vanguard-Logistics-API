@@ -6,11 +6,13 @@
 const orderStates = {
   pending: ["finding_driver", "cancelled"],           // Quán nhận -> finding_driver, Khách hủy -> cancelled
   finding_driver: ["preparing"],                       // Tx nhận -> preparing
-  preparing: ["delivering"],                           // Tx lấy hàng -> delivering
-  delivering: ["arrived"],                             // Tx đến điểm giao -> arrived
-  arrived: ["completed"],                              // Tx giao xong -> completed (KHÔNG cho hủy)
+  preparing: ["arrived_store"],                        // Tx đến quán -> arrived_store
+  arrived_store: ["delivering"],                       // Tx lấy hàng -> delivering
+  delivering: ["arrived", "failed"],                   // Tx đến điểm giao -> arrived, hoặc Khách bom -> failed
+  arrived: ["completed", "failed"],                    // Tx giao xong -> completed, hoặc Khách bom -> failed
   completed: [],
   cancelled: [],
+  failed: [],                                          // Đơn bom hàng -> failed
 };
 
 /**

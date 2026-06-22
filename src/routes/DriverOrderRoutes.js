@@ -105,6 +105,28 @@ router.put("/orders/:id/accept", DriverOrderController.acceptOrder);
 
 /**
  * @openapi
+ * /api/driver/orders/{id}/arrive_store:
+ *   put:
+ *     summary: Mark order as arrived at store
+ *     description: Updates the order status to "arrived_store" when driver arrives at the store.
+ *     tags:
+ *       - Driver Operations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Order arrived at store successfully
+ */
+router.put("/orders/:id/arrive_store", DriverOrderController.arriveStore);
+
+/**
+ * @openapi
  * /api/driver/orders/{id}/pickup:
  *   put:
  *     summary: Pickup an order from store
@@ -197,6 +219,37 @@ router.put("/orders/:id/arrive", DriverOrderController.arriveOrder);
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.put("/orders/:id/complete", DriverOrderController.completeOrder);
+
+/**
+ * @openapi
+ * /api/driver/orders/{id}/fail:
+ *   put:
+ *     summary: Mark an order as failed (Bom Hàng)
+ *     description: Driver marks an order as failed because the customer refused to receive it or cannot be contacted. The order status becomes 'failed'. The customer is charged 100%, while the store and driver are compensated.
+ *     tags:
+ *       - Driver Operations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Order marked as failed successfully
+ */
+router.put("/orders/:id/fail", DriverOrderController.failOrder);
 
 /**
  * @openapi
