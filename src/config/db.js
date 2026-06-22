@@ -95,6 +95,10 @@ function initDB() {
     db.run(`ALTER TABLE Orders ADD COLUMN delivery_fee REAL`, (err) => { /* ignore if exists */ });
     db.run(`ALTER TABLE Orders ADD COLUMN lat REAL`, (err) => { /* ignore if exists */ });
     db.run(`ALTER TABLE Orders ADD COLUMN lng REAL`, (err) => { /* ignore if exists */ });
+
+    // Auto-fill missing data for old accounts
+    db.run(`UPDATE Users SET phone_number = '0901234567' WHERE phone_number IS NULL OR phone_number = ''`);
+    db.run(`UPDATE Users SET vehicle_info = '59A1-12345 (Honda Wave)' WHERE role = 'driver' AND (vehicle_info IS NULL OR vehicle_info = '')`);
   });
 }
 

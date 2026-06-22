@@ -21,6 +21,7 @@
         <input type="text" id="store-user" placeholder="Tài khoản (VD: hungky)" value="hungky" class="w-full p-3 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
         <input type="password" id="store-pass" placeholder="Mật khẩu" value="123456" class="w-full p-3 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
         <input type="text" id="store-address" placeholder="Địa chỉ quán (Khi đăng ký)" class="w-full p-3 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
+        <input type="text" id="store-phone" placeholder="Số điện thoại (Khi đăng ký)" class="w-full p-3 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
         <button onclick="login('store')" class="w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-orange-600 transition">Đăng Nhập Quán</button>
         <button onclick="register('store')" class="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300 transition">Đăng Ký Quán Mới</button>
       </div>
@@ -36,6 +37,7 @@
         <div class="w-10 h-10 bg-orange-100 text-orange-500 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-utensils"></i></div>
         <div>
           <h2 class="font-bold text-gray-800 profile-name truncate w-32">Nhà Hàng</h2>
+          <p class="text-[10px] text-gray-500 profile-phone">Chưa có SĐT</p>
           <p id="store-status-text" class="text-xs text-green-500 font-semibold cursor-pointer" onclick="toggleStoreStatus()"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Đang mở cửa ▾</p>
         </div>
       </div>

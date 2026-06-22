@@ -30,3 +30,19 @@ Error: Invalid username or password.
 Error: Invalid username or password.
     at AuthService.login (D:\API\BTL\src\services\AuthService.js:50:19)
     at async login (D:\API\BTL\src\controllers\AuthController.js:52:24)
+[2026-06-22 13:50:46] ERROR: Insufficient balance. You need 60000 VND but only have 0 VND. Please deposit money. 
+Error: Insufficient balance. You need 60000 VND but only have 0 VND. Please deposit money.
+    at CustomerOrderService.createOrder (D:\API\BTL\src\services\CustomerOrderService.js:83:19)
+    at async createOrder (D:\API\BTL\src\controllers\CustomerOrderController.js:52:24)
+[2026-06-22 13:51:33] ERROR: Invalid username or password. 
+Error: Invalid username or password.
+    at AuthService.login (D:\API\BTL\src\services\AuthService.js:50:19)
+    at async login (D:\API\BTL\src\controllers\AuthController.js:58:24)
+[2026-06-22 13:56:47] ERROR: Invalid status transition from 'delivering' to 'cancelled'. 
+Error: Invalid status transition from 'delivering' to 'cancelled'.
+    at OrderService.updateOrderStatus (D:\API\BTL\src\services\OrderService.js:50:19)
+    at async updateOrderStatus (D:\API\BTL\src\controllers\OrderController.js:36:28)
+[2026-06-22 13:56:53] ERROR: Invalid status transition from 'delivering' to 'cancelled'. 
+Error: Invalid status transition from 'delivering' to 'cancelled'.
+    at OrderService.updateOrderStatus (D:\API\BTL\src\services\OrderService.js:50:19)
+    at async updateOrderStatus (D:\API\BTL\src\controllers\OrderController.js:36:28)

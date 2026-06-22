@@ -20,6 +20,12 @@ class AuthController {
       if (role === "store" && (!address || address.length < 5)) {
         errors.push("Address is required for stores and must be valid.");
       }
+      if (role !== "manager" && (!phone_number || phone_number.length < 8)) {
+        errors.push("Phone number is required and must be valid.");
+      }
+      if (role === "driver" && (!vehicle_info || vehicle_info.length < 5)) {
+        errors.push("Vehicle info (license plate) is required for drivers.");
+      }
 
       if (errors.length > 0) {
         return error(res, errors.join(" "), 400);

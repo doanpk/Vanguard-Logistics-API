@@ -16,7 +16,16 @@ class StoreModel {
   }
 
   static async getStoreOrders(storeId) {
-    const query = `SELECT * FROM Orders WHERE store_id = ? ORDER BY created_at DESC`;
+    const query = `
+      SELECT Orders.*, 
+             CustomerUser.full_name AS customer_name, CustomerUser.phone_number AS customer_phone,
+             DriverUser.full_name AS driver_name, DriverUser.phone_number AS driver_phone, DriverUser.vehicle_info AS driver_vehicle
+      FROM Orders 
+      LEFT JOIN Users AS CustomerUser ON Orders.customer_id = CustomerUser.id
+      LEFT JOIN Users AS DriverUser ON Orders.driver_id = DriverUser.id
+      WHERE Orders.store_id = ? 
+      ORDER BY Orders.created_at DESC
+    `;
     return await DBQuery.all(query, [storeId]);
   }
 

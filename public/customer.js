@@ -391,7 +391,7 @@ function renderOrderCard(o) {
         <div class="w-8 h-8 bg-blue-200 text-blue-600 rounded-full flex items-center justify-center mr-2"><i class="fa-solid fa-motorcycle"></i></div>
         <div class="flex-1">
           <p class="text-xs font-bold text-gray-800">${o.driver_name}</p>
-          <p class="text-[10px] text-gray-500">${o.driver_phone || 'Không có sđt'}</p>
+          <p class="text-[10px] text-gray-500">${o.driver_phone || 'Không có sđt'} • ${o.driver_vehicle || 'Chưa cập nhật xe'}</p>
         </div>
       </div>
     `;

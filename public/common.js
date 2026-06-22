@@ -78,20 +78,12 @@ async function loadProfile(role) {
   try {
     const res = await apiCall('/users/profile', 'GET', null, role);
     const profile = res.data;
-    const dashboard = document.getElementById(`${role}-dashboard`);
-    if(!dashboard) return;
     
-    const nameEl = dashboard.querySelector('.profile-name');
-    if (nameEl) nameEl.textContent = profile.full_name || profile.username;
-    
-    const balanceEl = dashboard.querySelector('.profile-balance');
-    if (balanceEl) balanceEl.textContent = (profile.balance || 0).toLocaleString('vi-VN');
-    
-    const phoneEl = dashboard.querySelector('.profile-phone');
-    if (phoneEl) phoneEl.textContent = profile.phone_number || '';
-
-    const vehicleEl = dashboard.querySelector('.profile-vehicle');
-    if (vehicleEl) vehicleEl.textContent = profile.vehicle_info || 'Không rõ';
+    // We can just query the whole document, assuming only one active profile tab per page
+    document.querySelectorAll('.profile-name').forEach(el => el.textContent = profile.full_name || profile.username);
+    document.querySelectorAll('.profile-balance').forEach(el => el.textContent = (profile.balance || 0).toLocaleString('vi-VN'));
+    document.querySelectorAll('.profile-phone').forEach(el => el.textContent = profile.phone_number || '');
+    document.querySelectorAll('.profile-vehicle').forEach(el => el.textContent = profile.vehicle_info || 'Chưa cập nhật');
   } catch(e) {
     console.error(e);
   }

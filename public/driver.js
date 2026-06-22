@@ -80,7 +80,16 @@ function showIncomingPopup(order) {
 
 function renderActiveOrder(order) {
   document.getElementById('active-id').textContent = order.id;
-  document.getElementById('active-items').textContent = order.item_description;
+  document.getElementById('active-items').innerHTML = `
+    <div class="mb-2 pb-2 border-b border-gray-600">
+      <p class="text-xs text-gray-400">Món ăn:</p>
+      <p class="font-semibold text-sm">${order.item_description}</p>
+    </div>
+    <div class="flex flex-col space-y-1 text-sm text-gray-300">
+      <p><i class="fa-solid fa-store w-5 text-orange-400"></i> ${order.store_name || 'Quán'} - ${order.store_phone || 'Không có SĐT'}</p>
+      <p><i class="fa-solid fa-user w-5 text-blue-400"></i> ${order.customer_name || 'Khách'} - ${order.customer_phone || 'Không có SĐT'}</p>
+    </div>
+  `;
   document.getElementById('driver-chat-btn').onclick = () => openChat(order.id);
   
   const statusText = document.getElementById('active-status-text');

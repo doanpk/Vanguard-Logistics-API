@@ -126,7 +126,8 @@ function renderKanban(orders) {
         <span class="text-xs text-gray-500">${new Date(o.created_at).toLocaleTimeString('vi-VN')}</span>
       </div>
       <p class="text-sm font-semibold text-gray-700 mb-1">${o.item_description}</p>
-      <p class="text-xs text-gray-500 truncate mb-3">Tới: ${o.delivery_address}</p>
+      <p class="text-xs text-gray-500 truncate mb-1"><i class="fa-solid fa-user mr-1 text-blue-400"></i> ${o.customer_name || 'Khách'} - ${o.customer_phone || 'Chưa cập nhật'}</p>
+      <p class="text-xs text-gray-500 truncate mb-3"><i class="fa-solid fa-location-dot mr-1 text-red-400"></i> Tới: ${o.delivery_address}</p>
       <div class="flex space-x-2 mb-2">
         <button onclick="storeRejectOrder(${o.id})" class="w-1/3 bg-gray-200 text-gray-700 font-bold py-2 rounded-lg text-sm hover:bg-gray-300">Từ chối</button>
         <button onclick="storeAcceptOrder(${o.id})" class="w-2/3 bg-red-100 text-red-600 font-bold py-2 rounded-lg text-sm hover:bg-red-200">Nhận Đơn</button>
@@ -142,7 +143,8 @@ function renderKanban(orders) {
         <h4 class="font-bold">Đơn #${o.id}</h4>
         <span class="bg-orange-100 text-orange-600 text-[10px] px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Tìm Tx</span>
       </div>
-      <p class="text-sm font-semibold text-gray-700 mb-3">${o.item_description}</p>
+      <p class="text-sm font-semibold text-gray-700 mb-2">${o.item_description}</p>
+      <p class="text-xs text-gray-500 truncate mb-3"><i class="fa-solid fa-user mr-1 text-blue-400"></i> ${o.customer_name || 'Khách'} - ${o.customer_phone || 'Chưa cập nhật'}</p>
       <button onclick="openChat(${o.id})" class="w-full text-blue-600 bg-blue-50 px-2 py-2 rounded-lg font-bold hover:bg-blue-100 text-sm"><i class="fa-solid fa-comment-dots mr-1"></i>Chat với khách</button>
     </div>
   `).join('') || '<p class="text-gray-400 text-sm text-center py-4">Trống</p>';
@@ -155,10 +157,11 @@ function renderKanban(orders) {
         <span class="bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded font-bold">${o.status === 'preparing' ? 'Chờ Tx đến' : o.status === 'delivering' ? 'Tx Đang Giao' : 'Tx Đã Đến'}</span>
       </div>
       <p class="text-sm font-semibold text-gray-700 mb-2">${o.item_description}</p>
-      <div class="flex justify-between items-center text-xs text-gray-600 mt-3 pt-3 border-t">
+      <p class="text-xs text-gray-500 truncate mb-1"><i class="fa-solid fa-user mr-1 text-blue-400"></i> ${o.customer_name || 'Khách'} - ${o.customer_phone || 'Chưa cập nhật'}</p>
+      <div class="flex justify-between items-center text-xs text-gray-600 mt-2 pt-2 border-t">
         <div class="flex items-center">
           <div class="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center mr-2"><i class="fa-solid fa-motorcycle text-xs"></i></div>
-          <span>Tài xế: <b>#${o.driver_id}</b></span>
+          <span>Tài xế: <b>${o.driver_name || ('#' + o.driver_id)}</b></span>
         </div>
         <button onclick="openChat(${o.id})" class="text-blue-600 bg-blue-50 px-2 py-1 rounded font-bold hover:bg-blue-100"><i class="fa-solid fa-comment-dots mr-1"></i>Chat</button>
       </div>

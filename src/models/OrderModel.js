@@ -45,7 +45,7 @@ class OrderModel {
     const query = `
       SELECT Orders.*, 
              StoreUser.lat AS store_lat, StoreUser.lng AS store_lng, StoreUser.username AS store_name, StoreUser.phone_number AS store_phone,
-             DriverUser.full_name AS driver_name, DriverUser.phone_number AS driver_phone
+             DriverUser.full_name AS driver_name, DriverUser.phone_number AS driver_phone, DriverUser.vehicle_info AS driver_vehicle
       FROM Orders 
       LEFT JOIN Users AS StoreUser ON Orders.store_id = StoreUser.id 
       LEFT JOIN Users AS DriverUser ON Orders.driver_id = DriverUser.id
@@ -59,7 +59,7 @@ class OrderModel {
     const query = `
       SELECT Orders.*, 
              StoreUser.lat AS store_lat, StoreUser.lng AS store_lng, StoreUser.username AS store_name, StoreUser.phone_number AS store_phone,
-             DriverUser.full_name AS driver_name, DriverUser.phone_number AS driver_phone
+             DriverUser.full_name AS driver_name, DriverUser.phone_number AS driver_phone, DriverUser.vehicle_info AS driver_vehicle
       FROM Orders 
       LEFT JOIN Users AS StoreUser ON Orders.store_id = StoreUser.id 
       LEFT JOIN Users AS DriverUser ON Orders.driver_id = DriverUser.id
@@ -174,9 +174,12 @@ class OrderModel {
 
   static async findByDriverId(driverId) {
     const query = `
-      SELECT Orders.*, Users.lat AS store_lat, Users.lng AS store_lng 
+      SELECT Orders.*, 
+             StoreUser.lat AS store_lat, StoreUser.lng AS store_lng, StoreUser.username AS store_name, StoreUser.phone_number AS store_phone,
+             CustomerUser.full_name AS customer_name, CustomerUser.phone_number AS customer_phone
       FROM Orders 
-      LEFT JOIN Users ON Orders.store_id = Users.id 
+      LEFT JOIN Users AS StoreUser ON Orders.store_id = StoreUser.id 
+      LEFT JOIN Users AS CustomerUser ON Orders.customer_id = CustomerUser.id
       WHERE Orders.driver_id = ? 
       ORDER BY Orders.created_at DESC
     `;
